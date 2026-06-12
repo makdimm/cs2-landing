@@ -348,15 +348,18 @@ def get_clutch_rating(limit=20):
     sql = f"""
         SELECT ps.player_name,
                COUNT(DISTINCT m.match_date) AS games,
-               SUM(ps.clutch_1v5) AS c5, SUM(ps.clutch_1v4) AS c4, SUM(ps.clutch_1v3) AS c3,
-               SUM(ps.clutch_1v2) AS c2, SUM(ps.clutch_1v1) AS c1,
+               ROUND(AVG(ps.clutch_1v5), 2) AS c5,
+               ROUND(AVG(ps.clutch_1v4), 2) AS c4,
+               ROUND(AVG(ps.clutch_1v3), 2) AS c3,
+               ROUND(AVG(ps.clutch_1v2), 2) AS c2,
+               ROUND(AVG(ps.clutch_1v1), 2) AS c1,
                ROUND(AVG(ps.kd), 2) AS kd, SUM(ps.kills) AS kills
         FROM player_stats ps
         JOIN matches m ON ps.match_id = m.id
         WHERE 1=1 {ACTIVE_FILTER_SQL}
         GROUP BY ps.player_name
-        HAVING (c5+c4+c3+c2+c1) > 0
-        ORDER BY (c5*5+c4*4+c3*3+c2*2+c1) DESC
+        HAVING ROUND(AVG(ps.clutch_1v5 + ps.clutch_1v4 + ps.clutch_1v3 + ps.clutch_1v2 + ps.clutch_1v1), 2) > 0
+        ORDER BY ROUND(AVG(ps.clutch_1v5*5 + ps.clutch_1v4*4 + ps.clutch_1v3*3 + ps.clutch_1v2*2 + ps.clutch_1v1), 2) DESC
         LIMIT ?
     """
     rows = conn.execute(sql, (ACTIVE_DAYS, MIN_DAYS, limit)).fetchall()
