@@ -416,13 +416,11 @@ def api_last_mvp():
 @app.get("/", response_class=HTMLResponse)
 def index(request: Request):
     impact = get_impact_rating()
-    matches = get_recent_matches()
     mvp_data = get_mvp_evp()
     last_day = mvp_data[0] if mvp_data else None
     return templates.TemplateResponse("index.html", {
         "request": request,
         "impact": impact,
-        "matches": matches,
         "last_day": last_day
     })
 

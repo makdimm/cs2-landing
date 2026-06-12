@@ -213,22 +213,6 @@
   <!-- Tab: Clutches -->
   <div id="tab-clutches" class="tab-content"><div class="loading" id="load-clutches"></div></div>
 
-  <!-- Recent matches -->
-  <div class="section-title">⚔️ Последние матчи</div>
-  <div class="matches">
-    {% for m in matches %}
-    <div class="match-card">
-      <div class="teams"><span>{{ m.fastcup_id }}</span></div>
-      <div class="score {% if m.winner == 'A' %}win{% endif %}">{{ m.score_a }}:{{ m.score_b }}</div>
-      <div>
-        <span class="players">{{ m.players }} игроков</span>
-        <span class="date">{{ m.match_date }}</span>
-      </div>
-    </div>
-    {% else %}
-    <div class="match-card" style="justify-content:center;color:var(--text-dim);">Нет матчей</div>
-    {% endfor %}
-  </div>
 </div>
 
 <script>
