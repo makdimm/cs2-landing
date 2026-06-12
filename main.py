@@ -73,7 +73,7 @@ def get_impact_rating(limit=20):
                ROUND(AVG(ps.kd), 2) AS kd,
                ROUND(AVG(ps.adr), 1) AS adr,
                ROUND(AVG(ps.hs_percent), 1) AS hs,
-               ROUND(AVG(ps.entries_val - ps.fd), 1) AS entries,
+               ROUND(AVG(ps.fk - ps.fd), 1) AS entries,
                ROUND(AVG(ps.clutch_1v5 + ps.clutch_1v4 + ps.clutch_1v3), 2) AS clutches,
                ROUND(AVG(ps.multikill_3k + ps.multikill_4k + ps.multikill_5k), 2) AS multi
         FROM player_stats ps
@@ -291,7 +291,7 @@ def get_mvp_evp():
             SELECT ps.player_name, ps.team,
                    SUM(ps.kills) AS kills, SUM(ps.deaths) AS deaths, SUM(ps.assists) AS assists,
                    ROUND(AVG(ps.adr),1) AS adr,
-                   SUM(COALESCE(ps.entries_val,0)) AS entries,
+                   SUM(COALESCE(ps.fk - ps.fd,0)) AS entries,
                    SUM(COALESCE(ps.clutch_1v5,0)*5+COALESCE(ps.clutch_1v4,0)*4+COALESCE(ps.clutch_1v3,0)*3+COALESCE(ps.clutch_1v2,0)*2+COALESCE(ps.clutch_1v1,0)) AS clutch_score,
                    SUM(COALESCE(ps.multikill_5k,0)*5+COALESCE(ps.multikill_4k,0)*4+COALESCE(ps.multikill_3k,0)*3+COALESCE(ps.multikill_2k,0)*2) AS multi_score,
                    SUM(COALESCE(ps.plus_minus,0)) AS pm
