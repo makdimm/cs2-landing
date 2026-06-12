@@ -148,7 +148,7 @@
   </div>
 
   <div class="formula">
-    KPR:1.5 + DPR:0.75 + APR:0.6 + ADR:0.1 + Entries:1.5 + Clutch:1.5 + Multi:0.75 + PM:0.15
+    KD×0.6 + FK-FD×0.15 + Clutch×0.1 + Multi×0.1 + ADR×0.01  |  рейтинг = raw / 1.7 (cap 2.0)
   </div>
 
   {% if last_day %}
@@ -185,7 +185,7 @@
             <td class="impact">{{ "%.2f"|format(p.impact) }}</td>
             <td class="kd">{{ "%.2f"|format(p.kd) }}</td>
             <td class="adr">{{ "%.1f"|format(p.adr) }}</td>
-            <td><div class="bar-wrap"><div class="bar" style="width: {{ (p.impact / 2.5 * 100)|round|int }}%"></div></div></td>
+            <td><div class="bar-wrap"><div class="bar" style="width: {{ (p.impact / 2.0 * 100)|round|int }}%"></div></div></td>
           </tr>
           {% else %}
           <tr><td class="empty" colspan="7">Нет данных</td></tr>

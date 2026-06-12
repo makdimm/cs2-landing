@@ -82,7 +82,7 @@ def get_impact_rating(limit=20):
         GROUP BY ps.player_name
     )
     SELECT *, games AS games,
-        ROUND(MIN(((kd * 0.6) + (CASE WHEN entries > 0 THEN entries ELSE 0 END * 0.15) + (clutches * 0.1) + (multi * 0.1) + (ADR * 0.05)) / 3.9, 2.0), 2) AS impact
+        ROUND(MIN(((kd * 0.6) + (CASE WHEN entries > 0 THEN entries ELSE 0 END * 0.15) + (clutches * 0.1) + (multi * 0.1) + (ADR * 0.01)) / 1.7, 2.0), 2) AS impact
     FROM player_agg
     ORDER BY impact DESC LIMIT ?
     """
