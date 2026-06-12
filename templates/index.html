@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CS2 HiddenAI — статистика</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0a0a0f;
+    --bg-card: #111118;
+    --bg-table: #14141e;
+    --border: #1e1e32;
+    --text: #e2e4f0;
+    --text-dim: #6b6d8a;
+    --accent: #4f7ef6;
+    --impact: #00d4ff;
+    --gold: #ffd700;
+    --orange: #ff6b35;
+    --pink: #ff2d55;
+    --grad: linear-gradient(90deg, var(--orange), var(--pink));
+    --radius: 10px;
+  }
+  body {
+    font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+  .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+  
+  .header { padding: 32px 0 24px; text-align: center; }
+  .header h1 { font-size: 2rem; font-weight: 800; letter-spacing: -.02em; }
+  .header h1 span { background: var(--grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .header .sub { color: var(--text-dim); font-size: .92rem; margin-top: 4px; }
+  
+  .filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; justify-content: center; }
+  .filter-btn {
+    padding: 6px 16px; border-radius: 100px; font-size: .82rem; font-weight: 600;
+    background: var(--bg-table); border: 1px solid var(--border); color: var(--text-dim);
+    cursor: pointer; transition: all .2s; font-family: inherit;
+  }
+  .filter-btn.active { border-color: var(--pink); color: var(--text); background: rgba(255,45,85,.08); }
+  .filter-btn:hover { border-color: var(--accent); color: var(--text); }
+  
+  .formula {
+    text-align: center; padding: 12px 16px; margin-bottom: 20px;
+    background: var(--bg-table); border: 1px solid var(--border); border-radius: var(--radius);
+    font-size: .78rem; color: var(--text-dim); font-family: monospace;
+    overflow-x: auto; white-space: nowrap;
+  }
+  
+  .rating-title {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 1.1rem; font-weight: 700; margin-bottom: 12px;
+  }
+  .rating-title .star { color: var(--pink); font-size: 1.2rem; }
+  
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+  
+  .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-table); }
+  table { width: 100%; border-collapse: collapse; font-size: .85rem; min-width: 700px; }
+  th {
+    padding: 10px 12px; text-align: left; font-weight: 600; color: var(--text-dim);
+    border-bottom: 1px solid var(--border); font-size: .78rem; text-transform: uppercase;
+    letter-spacing: .04em; background: var(--bg-card);
+  }
+  td { padding: 10px 12px; border-bottom: 1px solid rgba(30,30,50,.4); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(79,126,246,.04); }
+  
+  td.num { font-variant-numeric: tabular-nums; text-align: center; width: 32px; }
+  td.impact { color: var(--impact); font-weight: 700; font-size: .95rem; }
+  td.gold { color: var(--gold); font-weight: 700; }
+  td.green { color: #4caf50; font-weight: 600; }
+  td.red { color: var(--pink); }
+  td.name { font-weight: 600; }
+  td.kd { color: var(--text-dim); }
+  td.adr { color: var(--text-dim); }
+  td.games { color: var(--text-dim); text-align: center; }
+  td.team { text-align: center; font-size: .78rem; }
+  td.team-a { color: var(--accent); }
+  td.team-b { color: var(--orange); }
+  td.empty { text-align: center; padding: 32px !important; color: var(--text-dim); }
+  
+  .bar-wrap { width: 100px; height: 6px; background: rgba(255,255,255,.06); border-radius: 3px; overflow: hidden; }
+  .bar { height: 100%; border-radius: 3px; background: var(--grad); transition: width .4s; }
+  
+  .section-title { font-size: 1rem; font-weight: 700; margin: 32px 0 12px; display: flex; align-items: center; gap: 8px; }
+  .matches { display: grid; gap: 8px; }
+  .match-card {
+    padding: 12px 16px; background: var(--bg-table); border: 1px solid var(--border);
+    border-radius: var(--radius); display: flex; align-items: center; justify-content: space-between;
+    font-size: .85rem;
+  }
+  .match-card .teams { display: flex; align-items: center; gap: 12px; }
+  .match-card .score { font-weight: 700; font-size: 1rem; min-width: 40px; text-align: center; }
+  .match-card .score.win { color: var(--impact); }
+  .match-card .date { color: var(--text-dim); font-size: .78rem; }
+  .match-card .players { color: var(--text-dim); font-size: .78rem; }
+
+  .mvp-card {
+    padding: 16px; margin-bottom: 12px; background: var(--bg-table);
+    border: 1px solid var(--border); border-radius: var(--radius);
+  }
+  .mvp-card h3 { font-size: .9rem; margin-bottom: 8px; }
+  .mvp-card h3 span { color: var(--text-dim); font-weight: 400; }
+  .mvp-card .mvp-name { color: var(--impact); font-weight: 700; font-size: 1rem; }
+  .mvp-card .evp-name { color: var(--text); }
+  .mvp-card .stat { color: var(--text-dim); font-size: .8rem; }
+
+  @media (max-width: 600px) {
+    .container { padding: 12px; }
+    .header h1 { font-size: 1.4rem; }
+    table { font-size: .78rem; min-width: 600px; }
+    td, th { padding: 8px 8px; }
+  }
+  
+  .loading { text-align: center; padding: 40px; color: var(--text-dim); }
+  .loading::after { content: '⏳'; animation: spin 1s linear infinite; display: inline-block; }
+  @keyframes spin { 100% { transform: rotate(360deg); } }
+  
+  .day-btn {
+    padding: 4px 12px; border-radius: 100px; font-size: .78rem;
+    background: var(--bg-table); border: 1px solid var(--border); color: var(--text-dim);
+    cursor: pointer; transition: all .2s; font-family: inherit;
+  }
+  .day-btn.active { border-color: var(--pink); color: var(--text); }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1><span>CS2</span> HiddenAI</h1>
+    <div class="sub">Статистика игроков · Рейтинг · Матчи</div>
+  </div>
+
+  <div class="filters">
+    <button class="filter-btn active" data-tab="impact">Импакт</button>
+    <button class="filter-btn" data-tab="kd">K/D / ADR</button>
+    <button class="filter-btn" data-tab="hs">HS%</button>
+    <button class="filter-btn" data-tab="winrate">Винрейт</button>
+    <button class="filter-btn" data-tab="days">По дням</button>
+    <button class="filter-btn" data-tab="mvp">MVP/EVP</button>
+    <button class="filter-btn" data-tab="clutches">Клатчи</button>
+  </div>
+
+  <div class="formula">
+    KPR:1.5 + DPR:0.75 + APR:0.6 + ADR:0.1 + Entries:1.5 + Clutch:1.5 + Multi:0.75 + PM:0.15
+  </div>
+
+  <!-- Tab: Impact (server-rendered) -->
+  <div id="tab-impact" class="tab-content active">
+    <div class="rating-title"><span class="star">★</span> Импакт-рейтинг</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>#</th><th>ИГРОК</th><th>ИГР</th><th>ИМПАКТ</th><th>K/D</th><th>ADR</th><th>ГРАФИК</th></tr></thead>
+        <tbody>
+          {% for p in impact %}
+          <tr>
+            <td class="num">{{ loop.index }}</td>
+            <td class="name">{{ p.player_name }}</td>
+            <td class="games">{{ p.games }}</td>
+            <td class="impact">{{ "%.2f"|format(p.impact) }}</td>
+            <td class="kd">{{ "%.2f"|format(p.kd) }}</td>
+            <td class="adr">{{ "%.1f"|format(p.adr) }}</td>
+            <td><div class="bar-wrap"><div class="bar" style="width: {{ (p.impact / 2.5 * 100)|round|int }}%"></div></div></td>
+          </tr>
+          {% else %}
+          <tr><td class="empty" colspan="7">Нет данных</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Tab: K/D -->
+  <div id="tab-kd" class="tab-content"><div class="loading" id="load-kd"></div></div>
+
+  <!-- Tab: HS% -->
+  <div id="tab-hs" class="tab-content"><div class="loading" id="load-hs"></div></div>
+
+  <!-- Tab: Winrate -->
+  <div id="tab-winrate" class="tab-content"><div class="loading" id="load-winrate"></div></div>
+
+  <!-- Tab: By days -->
+  <div id="tab-days" class="tab-content"><div class="loading" id="load-days"></div></div>
+
+  <!-- Tab: MVP/EVP -->
+  <div id="tab-mvp" class="tab-content"><div class="loading" id="load-mvp"></div></div>
+
+  <!-- Tab: Clutches -->
+  <div id="tab-clutches" class="tab-content"><div class="loading" id="load-clutches"></div></div>
+
+  <!-- Recent matches -->
+  <div class="section-title">⚔️ Последние матчи</div>
+  <div class="matches">
+    {% for m in matches %}
+    <div class="match-card">
+      <div class="teams"><span>{{ m.fastcup_id }}</span></div>
+      <div class="score {% if m.winner == 'A' %}win{% endif %}">{{ m.score_a }}:{{ m.score_b }}</div>
+      <div>
+        <span class="players">{{ m.players }} игроков</span>
+        <span class="date">{{ m.match_date }}</span>
+      </div>
+    </div>
+    {% else %}
+    <div class="match-card" style="justify-content:center;color:var(--text-dim);">Нет матчей</div>
+    {% endfor %}
+  </div>
+</div>
+
+<script>
+function escapeHTML(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function renderKD(data) {
+  let h = '<div class="rating-title"><span class="star">★</span> K/D — ADR</div><div class="table-wrap"><table><thead><tr><th>#</th><th>ИГРОК</th><th>ИГР</th><th>K/D</th><th>ADR</th><th>УБИТО</th><th>СМЕРТЕЙ</th></tr></thead><tbody>';
+  data.forEach((p,i) => {
+    h += `<tr><td class="num">${i+1}</td><td class="name">${escapeHTML(p.player_name)}</td><td class="games">${p.games}</td><td class="impact">${p.kd.toFixed(2)}</td><td class="adr">${p.adr.toFixed(1)}</td><td class="kd">${p.kills}</td><td class="kd">${p.deaths}</td></tr>`;
+  });
+  h += '</tbody></table></div>';
+  document.getElementById('load-kd').outerHTML = h;
+}
+
+function renderHS(data) {
+  let h = '<div class="rating-title"><span class="star">★</span> HS% — хэдшоты</div><div class="table-wrap"><table><thead><tr><th>#</th><th>ИГРОК</th><th>ИГР</th><th>HS%</th><th>K/D</th><th>УБИТО</th></tr></thead><tbody>';
+  data.forEach((p,i) => {
+    h += `<tr><td class="num">${i+1}</td><td class="name">${escapeHTML(p.player_name)}</td><td class="games">${p.games}</td><td class="impact">${p.hs.toFixed(1)}%</td><td class="kd">${p.kd.toFixed(2)}</td><td class="kd">${p.kills}</td></tr>`;
+  });
+  h += '</tbody></table></div>';
+  document.getElementById('load-hs').outerHTML = h;
+}
+
+function renderWinrate(data) {
+  let h = '<div class="rating-title"><span class="star">★</span> Винрейт</div><div class="table-wrap"><table><thead><tr><th>#</th><th>ИГРОК</th><th>ИГР</th><th>W</th><th>L</th><th>WIN%</th><th>СТАТУС</th></tr></thead><tbody>';
+  data.forEach((p,i) => {
+    const color = p.wr >= 60 ? 'green' : (p.wr >= 45 ? 'kd' : 'red');
+    h += `<tr><td class="num">${i+1}</td><td class="name">${escapeHTML(p.name)}</td><td class="games">${p.played}</td><td class="green">${p.won}</td><td class="red">${p.lost}</td><td class="impact">${p.wr}%</td><td class="${color}">${p.bar}</td></tr>`;
+  });
+  h += '</tbody></table></div>';
+  document.getElementById('load-winrate').outerHTML = h;
+}
+
+function renderDays(data) {
+  let h = '';
+  data.forEach(d => {
+    h += `<div class="rating-title" style="margin-top:20px;">📅 ${d.date} (${d.matches} матча)</div>`;
+    h += '<div class="table-wrap"><table><thead><tr><th>#</th><th>ИГРОК</th><th>K/D</th><th>ADR</th><th>HS%</th><th>+/-</th><th>K</th><th>D</th></tr></thead><tbody>';
+    d.players.forEach((p,i) => {
+      h += `<tr><td class="num">${i+1}</td><td class="name">${escapeHTML(p.player_name)}</td><td class="impact">${p.kd.toFixed(2)}</td><td class="adr">${p.adr.toFixed(1)}</td><td class="kd">${p.hs.toFixed(1)}%</td><td class="${p.pm > 0 ? 'green' : 'red'}">${p.pm > 0 ? '+' : ''}${p.pm}</td><td class="kd">${p.kills}</td><td class="kd">${p.deaths}</td></tr>`;
+    });
+    h += '</tbody></table></div>';
+  });
+  document.getElementById('load-days').outerHTML = h || '<div class="empty" style="text-align:center;padding:40px;color:var(--text-dim)">Нет данных</div>';
+}
+
+function renderMVP(data) {
+  let h = '<div class="rating-title"><span class="star">★</span> MVP / EVP по дням</div>';
+  data.forEach(d => {
+    h += '<div class="mvp-card">';
+    h += `<h3>📅 ${d.date} <span>(${d.maps} карты, победила ${d.winner == 'A' ? 'Team A' : 'Team B'})</span></h3>`;
+    h += `<div><span style="color:var(--impact);font-weight:700;">MVP 🏆</span> <span class="mvp-name">${escapeHTML(d.mvp.name)}</span> `;
+    h += `<span class="stat">K/D ${d.mvp.kd} ADR ${d.mvp.adr} IMP ${d.mvp.impact}</span></div>`;
+    d.evp.forEach(e => {
+      h += `<div style="margin-top:4px;"><span style="color:var(--gold);">EVP</span> <span class="evp-name">${escapeHTML(e.name)}</span> `;
+      h += `<span class="stat">K/D ${e.kd} ADR ${e.adr} IMP ${e.impact}</span></div>`;
+    });
+    h += '</div>';
+  });
+  document.getElementById('load-mvp').outerHTML = h || '<div class="empty" style="text-align:center;padding:40px;color:var(--text-dim)">Нет данных</div>';
+}
+
+function renderClutches(data) {
+  let h = '<div class="rating-title"><span class="star">★</span> Клатчи</div><div class="table-wrap"><table><thead><tr><th>#</th><th>ИГРОК</th><th>ИГР</th><th>1v5</th><th>1v4</th><th>1v3</th><th>1v2</th><th>1v1</th><th>K/D</th></tr></thead><tbody>';
+  data.forEach((p,i) => {
+    const total = (p.c5||0)+(p.c4||0)+(p.c3||0)+(p.c2||0)+(p.c1||0);
+    h += `<tr><td class="num">${i+1}</td><td class="name">${escapeHTML(p.player_name)}</td><td class="games">${p.games}</td><td class="impact">${p.c5||0}</td><td class="kd">${p.c4||0}</td><td class="green">${p.c3||0}</td><td class="red">${p.c2||0}</td><td class="gold">${p.c1||0}</td><td class="kd">${p.kd.toFixed(2)}</td></tr>`;
+  });
+  h += '</tbody></table></div>';
+  document.getElementById('load-clutches').outerHTML = h;
+}
+
+const TABS = {
+  'kd': { url: '/api/kd', render: renderKD },
+  'hs': { url: '/api/hs', render: renderHS },
+  'winrate': { url: '/api/winrate', render: renderWinrate },
+  'days': { url: '/api/days', render: renderDays },
+  'mvp': { url: '/api/mvp-evp', render: renderMVP },
+  'clutches': { url: '/api/clutches', render: renderClutches },
+};
+
+const loaded = new Set();
+
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', async function() {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    this.classList.add('active');
+    
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    
+    const tab = this.dataset.tab;
+    const el = document.getElementById('tab-' + tab);
+    el.classList.add('active');
+    
+    if (tab === 'impact') return; // server-rendered
+    
+    if (loaded.has(tab)) return; // already loaded
+    
+    try {
+      const resp = await fetch(TABS[tab].url);
+      const data = await resp.json();
+      TABS[tab].render(data);
+      loaded.add(tab);
+    } catch(e) {
+      document.querySelector('#tab-' + tab + ' .loading').outerHTML = '<div class="empty">Ошибка загрузки</div>';
+    }
+  });
+});
+</script>
+</body>
+</html>
