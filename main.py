@@ -142,63 +142,56 @@ def get_winrate_stats(limit=20, min_days=3, last_n=8):
     day_dates_sorted = sorted(day_dates)
     placeholders = ','.join('?' * len(day_dates_sorted))
 
-    # Берём все матчи с результатами
+    # Матчи за эти дни
     matches = conn.execute(f"""
-        SELECT m.id, m.match_date, m.winner, m.score_a, m.score_b
+        SELECT m.id, m.match_date, m.winner
         FROM matches m
         WHERE m.match_date IN ({placeholders})
         ORDER BY m.match_date, m.id
     """, day_dates_sorted).fetchall()
 
-    # Определяем победителя для каждого матча
-    match_winners = {}
-    for r in matches:
-        match_winners[r["id"]] = r["winner"]
+    # Определяем победителя дня (больше выигранных матчей → при ничьей по счёту матчей
+    # используем общий счёт по очкам)
+    day_winners = {}
+    for d in day_dates_sorted:
+        day_matches = [r for r in matches if r["match_date"] == d]
+        a_wins = sum(1 for r in day_matches if r["winner"] == "A")
+        b_wins = sum(1 for r in day_matches if r["winner"] == "B")
+        day_winners[d] = "Team A" if a_wins >= b_wins else "Team B"
 
-    # Берём всех игроков и их команды по матчам
     rows = conn.execute(f"""
-        SELECT ps.player_name, ps.team, ps.match_id, m.match_date
+        SELECT DISTINCT ps.player_name, ps.team, m.match_date
         FROM player_stats ps
         JOIN matches m ON ps.match_id=m.id
         WHERE m.match_date IN ({placeholders})
     """, day_dates_sorted).fetchall()
     conn.close()
 
-    # Собираем по игрокам — теперь каждый матч это отдельный W/L
+    # Собираем по игрокам — один день = один результат
     players = {}
-    match_dates = {r["id"]: r["match_date"] for r in matches}
     for row in rows:
         name = row["player_name"]
-        if name not in players:
-            players[name] = {"won": 0, "lost": 0, "seq": {}, "day_count": set()}
-
-        mid = row["match_id"]
         day = row["match_date"]
-        players[name]["day_count"].add(day)
-        winner = match_winners.get(mid, "A")
-        won = row["team"] == "Team " + winner
-        if won:
-            players[name]["won"] += 1
-        else:
-            players[name]["lost"] += 1
-
-        # seq — для bar (по дням, W если хоть один матч выиграл)
+        if name not in players:
+            players[name] = {"won": 0, "seq": {}, "day_count": 0}
         if day not in players[name]["seq"]:
+            players[name]["day_count"] += 1
+            won = row["team"] == day_winners[day]
             players[name]["seq"][day] = won
-        elif won:
-            players[name]["seq"][day] = True
+            if won:
+                players[name]["won"] += 1
 
     out = []
     for name, s in players.items():
-        if len(s["day_count"]) < min_days:
+        if s["day_count"] < min_days:
             continue
-        played = s["won"] + s["lost"]
-        if played == 0:
-            continue
-        wr = round(s["won"] * 100.0 / played, 1)
         seq = [s["seq"].get(d) for d in day_dates_sorted]
+        played = sum(1 for v in seq if v is not None)
+        won = s["won"]
+        lost = played - won
+        wr = round(won * 100.0 / played, 1)
         bar = "".join("W" if v else "L" for v in seq if v is not None)
-        out.append({"name": name, "played": played, "won": s["won"], "lost": s["lost"], "wr": wr, "bar": bar})
+        out.append({"name": name, "played": played, "won": won, "lost": lost, "wr": wr, "bar": bar})
     out.sort(key=lambda x: (-x["wr"], -x["played"]))
     return out[:limit]
 
