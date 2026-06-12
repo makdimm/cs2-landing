@@ -279,10 +279,9 @@ function renderMVP(data) {
 }
 
 function renderClutches(data) {
-  let h = '<div class="rating-title"><span class="star">★</span> Клатчи (в среднем за матч)</div><div class="table-wrap"><table><thead><tr><th>#</th><th>ИГРОК</th><th>ИГР</th><th>1v5</th><th>1v4</th><th>1v3</th><th>1v2</th><th>1v1</th><th>K/D</th></tr></thead><tbody>';
+  let h = '<div class="rating-title"><span class="star">★</span> Клатчи (в среднем за матч)</div><div class="table-wrap"><table><thead><tr><th>#</th><th>ИГРОК</th><th>ИГР</th><th>1v5</th><th>1v4</th><th>1v3</th><th>1v2</th><th>1v1</th><th>Σ OЧКИ</th></tr></thead><tbody>';
   data.forEach((p,i) => {
-    const total = (p.c5||0)+(p.c4||0)+(p.c3||0)+(p.c2||0)+(p.c1||0);
-    h += `<tr><td class="num">${i+1}</td><td class="name">${escapeHTML(p.player_name)}</td><td class="games">${p.games}</td><td class="impact">${p.c5||0}</td><td class="kd">${p.c4||0}</td><td class="green">${p.c3||0}</td><td class="red">${p.c2||0}</td><td class="gold">${p.c1||0}</td><td class="kd">${p.kd.toFixed(2)}</td></tr>`;
+    h += `<tr><td class="num">${i+1}</td><td class="name">${escapeHTML(p.player_name)}</td><td class="games">${p.games}</td><td>${p.c5||0}</td><td>${p.c4||0}</td><td>${p.c3||0}</td><td>${p.c2||0}</td><td>${p.c1||0}</td><td class="impact">${p.score}</td></tr>`;
   });
   h += '</tbody></table></div>';
   document.getElementById('load-clutches').outerHTML = h;

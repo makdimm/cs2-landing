@@ -353,13 +353,13 @@ def get_clutch_rating(limit=20):
                ROUND(AVG(ps.clutch_1v3), 2) AS c3,
                ROUND(AVG(ps.clutch_1v2), 2) AS c2,
                ROUND(AVG(ps.clutch_1v1), 2) AS c1,
-               ROUND(AVG(ps.kd), 2) AS kd, SUM(ps.kills) AS kills
+               ROUND(AVG(ps.clutch_1v5*5 + ps.clutch_1v4*4 + ps.clutch_1v3*3 + ps.clutch_1v2*2 + ps.clutch_1v1), 2) AS score
         FROM player_stats ps
         JOIN matches m ON ps.match_id = m.id
         WHERE 1=1 {ACTIVE_FILTER_SQL}
         GROUP BY ps.player_name
         HAVING ROUND(AVG(ps.clutch_1v5 + ps.clutch_1v4 + ps.clutch_1v3 + ps.clutch_1v2 + ps.clutch_1v1), 2) > 0
-        ORDER BY ROUND(AVG(ps.clutch_1v5*5 + ps.clutch_1v4*4 + ps.clutch_1v3*3 + ps.clutch_1v2*2 + ps.clutch_1v1), 2) DESC
+        ORDER BY score DESC
         LIMIT ?
     """
     rows = conn.execute(sql, (ACTIVE_DAYS, MIN_DAYS, limit)).fetchall()
