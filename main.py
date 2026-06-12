@@ -406,14 +406,24 @@ def api_matches():
     return [dict(r) for r in rows]
 
 
+@app.get("/api/last-mvp")
+def api_last_mvp():
+    """MVP/EVP только за последний игровой день"""
+    all_mvp = get_mvp_evp()
+    return all_mvp[0] if all_mvp else {}
+
+
 @app.get("/", response_class=HTMLResponse)
 def index(request: Request):
     impact = get_impact_rating()
     matches = get_recent_matches()
+    mvp_data = get_mvp_evp()
+    last_day = mvp_data[0] if mvp_data else None
     return templates.TemplateResponse("index.html", {
         "request": request,
         "impact": impact,
-        "matches": matches
+        "matches": matches,
+        "last_day": last_day
     })
 
 

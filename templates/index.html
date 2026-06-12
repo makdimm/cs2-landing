@@ -151,7 +151,26 @@
     KPR:1.5 + DPR:0.75 + APR:0.6 + ADR:0.1 + Entries:1.5 + Clutch:1.5 + Multi:0.75 + PM:0.15
   </div>
 
-  <!-- Tab: Impact (server-rendered) -->
+  {% if last_day %}
+  <!-- MVP/EVP последнего дня -->
+  <div style="margin-bottom:16px;">
+    <div class="rating-title"><span class="star">🏆</span> MVP последнего дня ({{ last_day.date }})</div>
+    <div class="mvp-card">
+      <div>
+        <span style="color:var(--impact);font-weight:700;font-size:1rem;">MVP 🏆 {{ last_day.mvp.name }}</span>
+        <span class="stat">K/D {{ last_day.mvp.kd }} · ADR {{ last_day.mvp.adr }} · IMP {{ last_day.mvp.impact }}</span>
+      </div>
+      {% for e in last_day.evp %}
+      <div style="margin-top:6px;">
+        <span style="color:var(--gold);font-weight:600;">EVP</span>
+        <span class="evp-name">{{ e.name }}</span>
+        <span class="stat">K/D {{ e.kd }} · ADR {{ e.adr }} · IMP {{ e.impact }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
   <div id="tab-impact" class="tab-content active">
     <div class="rating-title"><span class="star">★</span> Импакт-рейтинг</div>
     <div class="table-wrap">
