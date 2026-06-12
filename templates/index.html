@@ -140,11 +140,11 @@
   <div class="filters">
     <button class="filter-btn active" data-tab="impact">Импакт</button>
     <button class="filter-btn" data-tab="kd">K/D / ADR</button>
-    <button class="filter-btn" data-tab="hs">HS%</button>
     <button class="filter-btn" data-tab="winrate">Винрейт</button>
     <button class="filter-btn" data-tab="days">По дням</button>
     <button class="filter-btn" data-tab="mvp">MVP/EVP</button>
     <button class="filter-btn" data-tab="clutches">Клатчи</button>
+    <button class="filter-btn" data-tab="hs">HS%</button>
   </div>
 
   <div class="formula">
@@ -198,9 +198,6 @@
   <!-- Tab: K/D -->
   <div id="tab-kd" class="tab-content"><div class="loading" id="load-kd"></div></div>
 
-  <!-- Tab: HS% -->
-  <div id="tab-hs" class="tab-content"><div class="loading" id="load-hs"></div></div>
-
   <!-- Tab: Winrate -->
   <div id="tab-winrate" class="tab-content"><div class="loading" id="load-winrate"></div></div>
 
@@ -212,6 +209,9 @@
 
   <!-- Tab: Clutches -->
   <div id="tab-clutches" class="tab-content"><div class="loading" id="load-clutches"></div></div>
+
+  <!-- Tab: HS% -->
+  <div id="tab-hs" class="tab-content"><div class="loading" id="load-hs"></div></div>
 
 </div>
 
@@ -289,11 +289,11 @@ function renderClutches(data) {
 
 const TABS = {
   'kd': { url: '/api/kd', render: renderKD },
-  'hs': { url: '/api/hs', render: renderHS },
   'winrate': { url: '/api/winrate', render: renderWinrate },
   'days': { url: '/api/days', render: renderDays },
   'mvp': { url: '/api/mvp-evp', render: renderMVP },
   'clutches': { url: '/api/clutches', render: renderClutches },
+  'hs': { url: '/api/hs', render: renderHS },
 };
 
 const loaded = new Set();
