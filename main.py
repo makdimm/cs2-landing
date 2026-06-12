@@ -73,7 +73,7 @@ def get_impact_rating(limit=20):
                ROUND(AVG(ps.kd), 2) AS kd,
                ROUND(AVG(ps.adr), 1) AS adr,
                ROUND(AVG(ps.hs_percent), 1) AS hs,
-               ROUND(AVG(ps.entries_val), 1) AS entries,
+               ROUND(AVG(ps.entries_val - ps.fd), 1) AS entries,
                ROUND(AVG(ps.clutch_1v5 + ps.clutch_1v4 + ps.clutch_1v3), 2) AS clutches,
                ROUND(AVG(ps.multikill_3k + ps.multikill_4k + ps.multikill_5k), 2) AS multi
         FROM player_stats ps
@@ -82,7 +82,7 @@ def get_impact_rating(limit=20):
         GROUP BY ps.player_name
     )
     SELECT *, games AS games,
-        ROUND((kd * 0.6) + (entries * 0.15) + (clutches * 0.1) + (multi * 0.1) + (ADR * 0.05), 2) AS impact
+        ROUND((kd * 0.6) + (CASE WHEN entries > 0 THEN entries ELSE 0 END * 0.15) + (clutches * 0.1) + (multi * 0.1) + (ADR * 0.05), 2) AS impact
     FROM player_agg
     ORDER BY impact DESC LIMIT ?
     """
