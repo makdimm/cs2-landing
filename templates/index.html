@@ -84,9 +84,10 @@
   td.team-a { color: var(--accent); }
   td.team-b { color: var(--orange); }
   td.empty { text-align: center; padding: 32px !important; color: var(--text-dim); }
+  .wr-w { display: inline-block; width: 22px; height: 22px; line-height: 22px; text-align: center; border-radius: 4px; font-size: 11px; font-weight: 700; color: #fff; background: #2e7d32; margin: 0 1px; }
+  .wr-l { display: inline-block; width: 22px; height: 22px; line-height: 22px; text-align: center; border-radius: 4px; font-size: 11px; font-weight: 700; color: #fff; background: #c62828; margin: 0 1px; }
   
-  .bar-wrap { width: 100px; height: 6px; background: rgba(255,255,255,.06); border-radius: 3px; overflow: hidden; }
-  .bar { height: 100%; border-radius: 3px; background: var(--grad); transition: width .4s; }
+
   
   .section-title { font-size: 1rem; font-weight: 700; margin: 32px 0 12px; display: flex; align-items: center; gap: 8px; }
   .matches { display: grid; gap: 8px; }
@@ -177,15 +178,37 @@
       <table>
         <thead><tr><th>#</th><th>ИГРОК</th><th>ИГР</th><th>ИМПАКТ</th><th>K/D</th><th>ADR</th><th>ГРАФИК</th></tr></thead>
         <tbody>
+          {% set ns = namespace(num=0) %}
           {% for p in impact %}
+          {% if p.games >= 3 %}{% set ns.num = ns.num + 1 %}{% endif %}
           <tr>
-            <td class="num">{{ loop.index }}</td>
+            <td class="num">{% if p.games >= 3 %}{{ ns.num }}{% else %}-{% endif %}</td>
             <td class="name">{{ p.player_name }}</td>
             <td class="games">{{ p.games }}</td>
             <td class="impact">{{ "%.2f"|format(p.impact) }}</td>
             <td class="kd">{{ "%.2f"|format(p.kd) }}</td>
             <td class="adr">{{ "%.1f"|format(p.adr) }}</td>
-            <td><div class="bar-wrap"><div class="bar" style="width: {{ (p.impact / 2.0 * 100)|round|int }}%"></div></div></td>
+            <td style="padding:4px 8px;">
+          {% set impacts = p.get('daily_impacts', []) %}
+          {% if impacts|length > 1 %}
+          <svg width="100" height="30" viewBox="0 0 100 30" style="display:block;">
+            <polyline
+              fill="none"
+              stroke="#ff6b9d"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              points="{% for item in impacts %}{{ loop.index0 * (100 // (impacts|length - 1)) }},{{ 30 - (item.impact / 2.0 * 30)|round(1) }}{% if not loop.last %} {% endif %}{% endfor %}"
+            />
+          </svg>
+          {% elif impacts|length == 1 %}
+          <svg width="100" height="30" viewBox="0 0 100 30" style="display:block;">
+            <circle cx="50" cy="{{ 30 - (impacts[0].impact / 2.0 * 30)|round(1) }}" r="3" fill="#ff6b9d" />
+          </svg>
+          {% else %}
+          <!-- no data -->
+          {% endif %}
+        </td>
           </tr>
           {% else %}
           <tr><td class="empty" colspan="7">Нет данных</td></tr>
@@ -222,8 +245,10 @@ function escapeHTML(str) {
 
 function renderKD(data) {
   let h = '<div class="rating-title"><span class="star">★</span> K/D — ADR</div><div class="table-wrap"><table><thead><tr><th>#</th><th>ИГРОК</th><th>ИГР</th><th>K/D</th><th>ADR</th><th>УБИТО</th><th>СМЕРТЕЙ</th></tr></thead><tbody>';
+  let num = 0;
   data.forEach((p,i) => {
-    h += `<tr><td class="num">${i+1}</td><td class="name">${escapeHTML(p.player_name)}</td><td class="games">${p.games}</td><td class="impact">${p.kd.toFixed(2)}</td><td class="adr">${p.adr.toFixed(1)}</td><td class="kd">${p.kills}</td><td class="kd">${p.deaths}</td></tr>`;
+    if (p.games >= 3) num++;
+    h += `<tr><td class="num">${p.games >= 3 ? num : '-'}</td><td class="name">${escapeHTML(p.player_name)}</td><td class="games">${p.games}</td><td class="impact">${p.kd.toFixed(2)}</td><td class="adr">${p.adr.toFixed(1)}</td><td class="kd">${p.kills}</td><td class="kd">${p.deaths}</td></tr>`;
   });
   h += '</tbody></table></div>';
   document.getElementById('load-kd').outerHTML = h;
@@ -231,8 +256,10 @@ function renderKD(data) {
 
 function renderHS(data) {
   let h = '<div class="rating-title"><span class="star">★</span> HS% — хэдшоты</div><div class="table-wrap"><table><thead><tr><th>#</th><th>ИГРОК</th><th>ИГР</th><th>HS%</th><th>K/D</th><th>УБИТО</th></tr></thead><tbody>';
+  let num = 0;
   data.forEach((p,i) => {
-    h += `<tr><td class="num">${i+1}</td><td class="name">${escapeHTML(p.player_name)}</td><td class="games">${p.games}</td><td class="impact">${p.hs.toFixed(1)}%</td><td class="kd">${p.kd.toFixed(2)}</td><td class="kd">${p.kills}</td></tr>`;
+    if (p.games >= 3) num++;
+    h += `<tr><td class="num">${p.games >= 3 ? num : '-'}</td><td class="name">${escapeHTML(p.player_name)}</td><td class="games">${p.games}</td><td class="impact">${p.hs.toFixed(1)}%</td><td class="kd">${p.kd.toFixed(2)}</td><td class="kd">${p.kills}</td></tr>`;
   });
   h += '</tbody></table></div>';
   document.getElementById('load-hs').outerHTML = h;
@@ -240,10 +267,12 @@ function renderHS(data) {
 
 function renderWinrate(data) {
   let h = '<div class="rating-title"><span class="star">★</span> Винрейт</div><div class="table-wrap"><table><thead><tr><th>#</th><th>ИГРОК</th><th>ИГР</th><th>W</th><th>L</th><th>WIN%</th><th>СТАТУС</th></tr></thead><tbody>';
+  let num = 0;
   data.forEach((p,i) => {
+    if (p.played >= 3) num++;
     const color = p.wr >= 60 ? 'green' : (p.wr >= 45 ? 'kd' : 'red');
-    const coloredBar = p.bar.split('').map(c => c === 'W' ? `<span class="green">W</span>` : `<span class="red">L</span>`).join('');
-    h += `<tr><td class="num">${i+1}</td><td class="name">${escapeHTML(p.name)}</td><td class="games">${p.played}</td><td class="green">${p.won}</td><td class="red">${p.lost}</td><td class="impact">${p.wr}%</td><td class="${color}">${coloredBar}</td></tr>`;
+    const coloredBar = p.bar.split('').map(c => c === 'W' ? `<span class="wr-w">W</span>` : `<span class="wr-l">L</span>`).join('');
+    h += `<tr><td class="num">${p.played >= 3 ? num : '-'}</td><td class="name">${escapeHTML(p.name)}</td><td class="games">${p.played}</td><td class="green">${p.won}</td><td class="red">${p.lost}</td><td class="impact">${p.wr}%</td><td class="${color}">${coloredBar}</td></tr>`;
   });
   h += '</tbody></table></div>';
   document.getElementById('load-winrate').outerHTML = h;
