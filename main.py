@@ -339,6 +339,87 @@ def get_mvp_evp():
     return result
 
 
+def get_medals_stats():
+    mvp_evp_days = get_mvp_evp()
+    if not mvp_evp_days:
+        return []
+
+    medal_stats = {}
+
+    for day in mvp_evp_days:
+        mvp = day.get("mvp")
+        if mvp and mvp.get("name"):
+            name = mvp["name"]
+            stats = medal_stats.setdefault(name, {
+                "player_name": name,
+                "mvp_count": 0,
+                "evp_count": 0,
+                "medals_total": 0,
+                "_impact_sum": 0.0,
+                "_kd_sum": 0.0,
+                "_adr_sum": 0.0,
+                "_medal_days": 0,
+            })
+            stats["mvp_count"] += 1
+            stats["medals_total"] += 1
+            stats["_impact_sum"] += float(mvp.get("impact") or 0)
+            stats["_kd_sum"] += float(mvp.get("kd") or 0)
+            stats["_adr_sum"] += float(mvp.get("adr") or 0)
+            stats["_medal_days"] += 1
+
+        for evp in day.get("evp", []):
+            if not evp or not evp.get("name"):
+                continue
+            name = evp["name"]
+            stats = medal_stats.setdefault(name, {
+                "player_name": name,
+                "mvp_count": 0,
+                "evp_count": 0,
+                "medals_total": 0,
+                "_impact_sum": 0.0,
+                "_kd_sum": 0.0,
+                "_adr_sum": 0.0,
+                "_medal_days": 0,
+            })
+            stats["evp_count"] += 1
+            stats["medals_total"] += 1
+            stats["_impact_sum"] += float(evp.get("impact") or 0)
+            stats["_kd_sum"] += float(evp.get("kd") or 0)
+            stats["_adr_sum"] += float(evp.get("adr") or 0)
+            stats["_medal_days"] += 1
+
+    if not medal_stats:
+        return []
+
+    conn = get_db()
+    games_rows = conn.execute("""
+        SELECT ps.player_name, COUNT(DISTINCT m.match_date) AS games
+        FROM player_stats ps
+        JOIN matches m ON ps.match_id = m.id
+        GROUP BY ps.player_name
+    """).fetchall()
+    conn.close()
+
+    games_map = {row["player_name"]: row["games"] for row in games_rows}
+
+    out = []
+    for name, stats in medal_stats.items():
+        medal_days = stats["_medal_days"] or 1
+        out.append({
+            "player_name": name,
+            "mvp_count": stats["mvp_count"],
+            "evp_count": stats["evp_count"],
+            "medals_total": stats["medals_total"],
+            "avg_impact": round(stats["_impact_sum"] / medal_days, 2),
+            "avg_kd": round(stats["_kd_sum"] / medal_days, 2),
+            "avg_adr": round(stats["_adr_sum"] / medal_days, 1),
+            "games": games_map.get(name, 0),
+        })
+
+    out.sort(key=lambda x: (-x["medals_total"], -x["mvp_count"], -x["avg_impact"], x["player_name"]))
+    return out
+
+
 def get_clutch_rating(limit=20):
     conn = get_db()
     sql = f"""
@@ -388,6 +469,10 @@ def api_days():
 @app.get("/api/mvp-evp")
 def api_mvp_evp():
     return get_mvp_evp()
+
+@app.get("/api/medals")
+def api_medals():
+    return get_medals_stats()
 
 @app.get("/api/clutches")
 def api_clutches():
