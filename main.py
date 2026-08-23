@@ -327,13 +327,24 @@ def get_mvp_evp():
             continue
 
         mvp = max(winners, key=lambda x: x["_iv"])
+        worst = min(rated, key=lambda x: x["_iv"])
         rest = sorted([p for p in rated if p["name"] != mvp["name"]], key=lambda x: x["_iv"], reverse=True)
         for p in rated:
             if "_iv" in p:
                 del p["_iv"]
         result.append({
             "date": day, "maps": total_maps, "winner": winner_team[-1],
-            "mvp": mvp, "evp": rest[:3]
+            "mvp": mvp,
+            "evp": rest[:3],
+            "worst": {
+                "name": worst["name"],
+                "team": worst["team"],
+                "kills": worst["kills"],
+                "deaths": worst["deaths"],
+                "kd": worst["kd"],
+                "adr": worst["adr"],
+                "impact": worst["impact"],
+            }
         })
     conn.close()
     return result
@@ -354,6 +365,7 @@ def get_medals_stats():
                 "player_name": name,
                 "mvp_count": 0,
                 "evp_count": 0,
+                "worst_count": 0,
                 "medals_total": 0,
                 "_impact_sum": 0.0,
                 "_kd_sum": 0.0,
@@ -375,6 +387,7 @@ def get_medals_stats():
                 "player_name": name,
                 "mvp_count": 0,
                 "evp_count": 0,
+                "worst_count": 0,
                 "medals_total": 0,
                 "_impact_sum": 0.0,
                 "_kd_sum": 0.0,
@@ -387,6 +400,22 @@ def get_medals_stats():
             stats["_kd_sum"] += float(evp.get("kd") or 0)
             stats["_adr_sum"] += float(evp.get("adr") or 0)
             stats["_medal_days"] += 1
+
+        worst = day.get("worst")
+        if worst and worst.get("name"):
+            name = worst["name"]
+            stats = medal_stats.setdefault(name, {
+                "player_name": name,
+                "mvp_count": 0,
+                "evp_count": 0,
+                "worst_count": 0,
+                "medals_total": 0,
+                "_impact_sum": 0.0,
+                "_kd_sum": 0.0,
+                "_adr_sum": 0.0,
+                "_medal_days": 0,
+            })
+            stats["worst_count"] += 1
 
     if not medal_stats:
         return []
@@ -409,6 +438,7 @@ def get_medals_stats():
             "player_name": name,
             "mvp_count": stats["mvp_count"],
             "evp_count": stats["evp_count"],
+            "worst_count": stats["worst_count"],
             "medals_total": stats["medals_total"],
             "avg_impact": round(stats["_impact_sum"] / medal_days, 2),
             "avg_kd": round(stats["_kd_sum"] / medal_days, 2),

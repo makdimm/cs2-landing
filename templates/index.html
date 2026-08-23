@@ -169,6 +169,13 @@
         <span class="stat">K/D {{ e.kd }} · ADR {{ e.adr }} · IMP {{ e.impact }}</span>
       </div>
       {% endfor %}
+      {% if last_day.worst %}
+      <div style="margin-top:6px;">
+        <span style="color:var(--pink);font-weight:700;">🐰 Ушастая медаль</span>
+        <span class="mvp-name" style="color:var(--pink);">{{ last_day.worst.name }}</span>
+        <span class="stat">K/D {{ last_day.worst.kd }} · ADR {{ last_day.worst.adr }} · IMP {{ last_day.worst.impact }}</span>
+      </div>
+      {% endif %}
     </div>
   </div>
   {% endif %}
@@ -306,6 +313,10 @@ function renderMVP(data) {
       h += `<div style="margin-top:4px;"><span style="color:var(--gold);">EVP</span> <span class="evp-name">${escapeHTML(e.name)}</span> `;
       h += `<span class="stat">K/D ${e.kd} ADR ${e.adr} IMP ${e.impact}</span></div>`;
     });
+    if (d.worst) {
+      h += `<div style="margin-top:6px;"><span style="color:var(--pink);font-weight:700;">🐰 Ушастая медаль</span> <span class="mvp-name" style="color:var(--pink);">${escapeHTML(d.worst.name)}</span> `;
+      h += `<span class="stat">K/D ${d.worst.kd} ADR ${d.worst.adr} IMP ${d.worst.impact}</span></div>`;
+    }
     h += '</div>';
   });
   document.getElementById('load-mvp').outerHTML = h || '<div class="empty" style="text-align:center;padding:40px;color:var(--text-dim)">Нет данных</div>';
@@ -317,9 +328,9 @@ function renderMedals(data) {
     return;
   }
 
-  let h = '<div class="rating-title"><span class="star">★</span> Медали MVP / EVP</div><div class="table-wrap"><table><thead><tr><th>#</th><th>ИГРОК</th><th>🏆 MVP</th><th>EVP</th><th>ВСЕГО</th><th>ИМПАКТ (ср)</th><th>K/D (ср)</th><th>ADR (ср)</th></tr></thead><tbody>';
+  let h = '<div class="rating-title"><span class="star">★</span> Медали MVP / EVP</div><div class="table-wrap"><table><thead><tr><th>#</th><th>ИГРОК</th><th>🏆 MVP</th><th>EVP</th><th>ВСЕГО</th><th>🐰 УШИ</th><th>ИМПАКТ (ср)</th><th>K/D (ср)</th><th>ADR (ср)</th></tr></thead><tbody>';
   data.forEach((p, i) => {
-    h += `<tr><td class="num">${i + 1}</td><td class="name">${escapeHTML(p.player_name)}</td><td class="gold">${p.mvp_count}</td><td class="kd">${p.evp_count}</td><td class="impact">${p.medals_total}</td><td class="impact">${Number(p.avg_impact).toFixed(2)}</td><td class="kd">${Number(p.avg_kd).toFixed(2)}</td><td class="adr">${Number(p.avg_adr).toFixed(1)}</td></tr>`;
+    h += `<tr><td class="num">${i + 1}</td><td class="name">${escapeHTML(p.player_name)}</td><td class="gold">${p.mvp_count}</td><td class="kd">${p.evp_count}</td><td class="impact">${p.medals_total}</td><td class="red">${p.worst_count || 0}</td><td class="impact">${Number(p.avg_impact).toFixed(2)}</td><td class="kd">${Number(p.avg_kd).toFixed(2)}</td><td class="adr">${Number(p.avg_adr).toFixed(1)}</td></tr>`;
   });
   h += '</tbody></table></div>';
   document.getElementById('load-medals').outerHTML = h;
