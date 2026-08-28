@@ -53,11 +53,15 @@ def get_last_game_dates(conn, limit=8):
 
 def estimate_day_maps(conn, match_date):
     match_ids = conn.execute(
-        "SELECT id FROM matches WHERE match_date=?",
+        "SELECT id, score_a, score_b FROM matches WHERE match_date=?",
         (match_date,)
     ).fetchall()
     total_maps = 0
     for match in match_ids:
+        sa, sb = match["score_a"], match["score_b"]
+        if sa is not None and sb is not None and sa <= 3 and sb <= 3 and sa + sb > 0:
+            total_maps += sa + sb
+            continue
         total_kills = conn.execute(
             "SELECT COALESCE(SUM(kills),0) FROM player_stats WHERE match_id=?",
             (match["id"],)
