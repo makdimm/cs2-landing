@@ -575,6 +575,34 @@ def get_clutch_rating(limit=20):
     return [dict(r) for r in rows]
 
 
+def get_entry_rating(limit=20):
+    """Статистика по энтри за последние 8 игровых дней: first kills / first deaths / разница."""
+    conn = get_db()
+    day_dates = get_last_game_dates(conn, 8)
+    if not day_dates:
+        conn.close()
+        return []
+    placeholders = ",".join("?" for _ in day_dates)
+    sql = f"""
+        SELECT ps.player_name,
+               COUNT(DISTINCT m.match_date) AS games,
+               SUM(COALESCE(ps.fk, 0)) AS fk,
+               SUM(COALESCE(ps.fd, 0)) AS fd,
+               SUM(COALESCE(ps.fk, 0)) - SUM(COALESCE(ps.fd, 0)) AS diff,
+               ROUND(AVG(COALESCE(ps.fk, 0)), 2) AS fk_avg,
+               ROUND(AVG(COALESCE(ps.fd, 0)), 2) AS fd_avg
+        FROM player_stats ps
+        JOIN matches m ON ps.match_id = m.id
+        WHERE m.match_date IN ({placeholders})
+        GROUP BY ps.player_name
+        ORDER BY CASE WHEN games >= 3 THEN 0 ELSE 1 END, diff DESC, ps.player_name
+        LIMIT ?
+    """
+    rows = conn.execute(sql, (*day_dates, limit)).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
 # ── API endpoints ──
 
 @app.get("/api/impact")
@@ -608,6 +636,10 @@ def api_medals():
 @app.get("/api/clutches")
 def api_clutches():
     return get_clutch_rating()
+
+@app.get("/api/entry")
+def api_entry():
+    return get_entry_rating()
 
 @app.get("/api/matches")
 def api_matches():

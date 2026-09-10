@@ -147,6 +147,7 @@
     <button class="filter-btn" data-tab="medals">Медали</button>
     <button class="filter-btn" data-tab="clutches">Клатчи</button>
     <button class="filter-btn" data-tab="hs">HS%</button>
+    <button class="filter-btn" data-tab="entry">Энтри</button>
   </div>
 
   <div class="formula">
@@ -247,6 +248,9 @@
   <!-- Tab: HS% -->
   <div id="tab-hs" class="tab-content"><div class="loading" id="load-hs"></div></div>
 
+  <!-- Tab: Entry -->
+  <div id="tab-entry" class="tab-content"><div class="loading" id="load-entry"></div></div>
+
 </div>
 
 <script>
@@ -274,6 +278,19 @@ function renderHS(data) {
   });
   h += '</tbody></table></div>';
   document.getElementById('load-hs').outerHTML = h;
+}
+
+function renderEntry(data) {
+  let h = '<div class="rating-title"><span class="star">★</span> Энтри — первые убийства / первые смерти (8 игр)</div><div class="table-wrap"><table><thead><tr><th>#</th><th>ИГРОК</th><th>ИГР</th><th>FIRST KILLS</th><th>FIRST DEATHS</th><th>РАЗНИЦА</th><th>FK/игру</th><th>FD/игру</th></tr></thead><tbody>';
+  let num = 0;
+  (data || []).forEach((p) => {
+    if (p.games >= 3) num++;
+    const diff = Number(p.diff || 0);
+    const cls = diff > 0 ? 'green' : (diff < 0 ? 'red' : 'kd');
+    h += `<tr><td class="num">${p.games >= 3 ? num : '-'}</td><td class="name">${escapeHTML(p.player_name)}</td><td class="games">${p.games}</td><td class="impact">${p.fk}</td><td class="kd">${p.fd}</td><td class="${cls}">${diff > 0 ? '+' : ''}${diff}</td><td class="kd">${Number(p.fk_avg || 0).toFixed(2)}</td><td class="kd">${Number(p.fd_avg || 0).toFixed(2)}</td></tr>`;
+  });
+  h += '</tbody></table></div>';
+  document.getElementById('load-entry').outerHTML = h;
 }
 
 function renderWinrate(data) {
@@ -353,6 +370,7 @@ const TABS = {
   'medals': { url: '/api/medals', render: renderMedals },
   'clutches': { url: '/api/clutches', render: renderClutches },
   'hs': { url: '/api/hs', render: renderHS },
+  'entry': { url: '/api/entry', render: renderEntry },
 };
 
 const loaded = new Set();
