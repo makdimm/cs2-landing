@@ -112,6 +112,42 @@
   .mvp-card .evp-name { color: var(--text); }
   .mvp-card .stat { color: var(--text-dim); font-size: .8rem; }
 
+  /* ——— Герой-блок MVP последнего дня ——— */
+  .mvp-hero { display: grid; grid-template-columns: minmax(230px, 1fr) 1.6fr; gap: 14px; margin-bottom: 22px; align-items: stretch; }
+  .mvp-hero .hero-main {
+    position: relative; padding: 20px 22px; border-radius: 14px;
+    border: 1px solid rgba(255, 215, 0, .35);
+    background: radial-gradient(120% 120% at 0% 0%, rgba(255,215,0,.15), rgba(255,215,0,.02) 62%), var(--bg-card);
+    overflow: hidden;
+  }
+  .mvp-hero .hero-main::after {
+    content: ''; position: absolute; inset: 0 auto 0 0; width: 3px;
+    background: linear-gradient(180deg, var(--gold), transparent);
+  }
+  .hero-main .hero-tag { font-size: .7rem; letter-spacing: .14em; text-transform: uppercase; color: var(--text-dim); }
+  .hero-main .hero-name { font-size: 1.55rem; font-weight: 800; color: var(--gold); margin-top: 4px; line-height: 1.15; }
+  .hero-main .hero-metrics { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 14px; }
+  .hero-main .metric .m-val { font-size: 1.1rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .hero-main .metric .m-lbl { font-size: .66rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: .1em; }
+  .mvp-hero .hero-side { display: flex; flex-direction: column; gap: 8px; }
+  .hero-side .evp-row {
+    flex: 1; display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+    border-radius: 12px; border: 1px solid var(--border); background: var(--bg-table);
+  }
+  .evp-row .rank {
+    font-size: .64rem; font-weight: 700; letter-spacing: .08em; color: var(--text-dim);
+    border: 1px solid var(--border); border-radius: 6px; padding: 2px 7px; white-space: nowrap;
+  }
+  .evp-row .nick { font-weight: 600; flex: 0 1 auto; }
+  .evp-row .vals { margin-left: auto; color: var(--text-dim); font-size: .8rem; font-variant-numeric: tabular-nums; text-align: right; }
+  .hero-side .worst-row { border-color: rgba(255, 45, 85, .45); background: rgba(255, 45, 85, .07); }
+  .worst-row .nick { color: var(--pink); }
+  @media (max-width: 760px) {
+    .mvp-hero { grid-template-columns: 1fr; }
+    .mvp-hero .hero-name { font-size: 1.3rem; }
+    .evp-row .vals { font-size: .74rem; }
+  }
+
   @media (max-width: 600px) {
     .container { padding: 12px; }
     .header h1 { font-size: 1.4rem; }
@@ -134,26 +170,30 @@
 <body>
 <div class="container">
   {% if last_day %}
-  <!-- MVP/EVP последнего дня — ПЕРВЫЙ БЛОК (по просьбе Димы 11.09) -->
-  <div style="margin-bottom:16px;">
-    <div class="rating-title"><span class="star">🏆</span> MVP последнего дня ({{ last_day.date }})</div>
-    <div class="mvp-card">
-      <div>
-        <span style="color:var(--impact);font-weight:700;font-size:1rem;">MVP 🏆 {{ last_day.mvp.name }}</span>
-        <span class="stat">K/D {{ last_day.mvp.kd }} · ADR {{ last_day.mvp.adr }} · IMP {{ last_day.mvp.impact }}</span>
+  <!-- MVP / EVP последнего дня — герой-блок (оформление 11.09) -->
+  <div class="mvp-hero">
+    <div class="hero-main">
+      <div class="hero-tag">MVP последнего дня · {{ last_day.date }}</div>
+      <div class="hero-name">🏆 {{ last_day.mvp.name }}</div>
+      <div class="hero-metrics">
+        <div class="metric"><div class="m-val">{{ "%.2f"|format(last_day.mvp.kd) }}</div><div class="m-lbl">K/D</div></div>
+        <div class="metric"><div class="m-val">{{ "%.1f"|format(last_day.mvp.adr) }}</div><div class="m-lbl">ADR</div></div>
+        <div class="metric"><div class="m-val">{{ "%.2f"|format(last_day.mvp.impact) }}</div><div class="m-lbl">IMP</div></div>
       </div>
+    </div>
+    <div class="hero-side">
       {% for e in last_day.evp %}
-      <div style="margin-top:6px;">
-        <span style="color:var(--gold);font-weight:600;">EVP</span>
-        <span class="evp-name">{{ e.name }}</span>
-        <span class="stat">K/D {{ e.kd }} · ADR {{ e.adr }} · IMP {{ e.impact }}</span>
+      <div class="evp-row">
+        <span class="rank">EVP</span>
+        <span class="nick">{{ e.name }}</span>
+        <span class="vals">K/D {{ "%.2f"|format(e.kd) }} · ADR {{ "%.1f"|format(e.adr) }} · IMP {{ "%.2f"|format(e.impact) }}</span>
       </div>
       {% endfor %}
       {% if last_day.worst %}
-      <div style="margin-top:6px;">
-        <span style="color:var(--pink);font-weight:700;">🐰 Ушастая медаль</span>
-        <span class="mvp-name" style="color:var(--pink);">{{ last_day.worst.name }}</span>
-        <span class="stat">K/D {{ last_day.worst.kd }} · ADR {{ last_day.worst.adr }} · IMP {{ last_day.worst.impact }}</span>
+      <div class="evp-row worst-row">
+        <span class="rank">🐰</span>
+        <span class="nick">{{ last_day.worst.name }}</span>
+        <span class="vals">K/D {{ "%.2f"|format(last_day.worst.kd) }} · ADR {{ "%.1f"|format(last_day.worst.adr) }} · IMP {{ "%.2f"|format(last_day.worst.impact) }}</span>
       </div>
       {% endif %}
     </div>
