@@ -74,6 +74,23 @@ def get_last_game_dates(conn, limit=8):
     return sorted([r[0] for r in rows])
 
 
+def get_player_last_dates(conn, player_name, limit=8):
+    """Последние N игровых дней КОНКРЕТНОГО игрока (персонально)."""
+    rows = conn.execute(
+        "SELECT DISTINCT m.match_date FROM player_stats ps JOIN matches m ON ps.match_id=m.id "
+        "WHERE ps.player_name = ? ORDER BY m.match_date DESC LIMIT ?",
+        (player_name, limit)
+    ).fetchall()
+    return sorted([r[0] for r in rows])
+
+
+PLAYER_LAST8_IN = (
+    "m.match_date IN ("
+    "SELECT DISTINCT m2.match_date FROM player_stats ps2 JOIN matches m2 ON ps2.match_id=m2.id "
+    "WHERE ps2.player_name = ps.player_name ORDER BY m2.match_date DESC LIMIT 8)"
+)
+
+
 def estimate_day_maps(conn, match_date):
     match_ids = conn.execute(
         "SELECT id, score_a, score_b FROM matches WHERE match_date=?",
@@ -128,7 +145,7 @@ def compute_day_impact(day_stats, maps):
 
 def get_player_last8_impact_summary(conn, player_name, day_dates=None, day_maps=None):
     if day_dates is None:
-        day_dates = get_last_game_dates(conn, 8)
+        day_dates = get_player_last_dates(conn, player_name, 8)
     if not day_dates:
         return {
             "player_name": player_name,
@@ -226,15 +243,15 @@ def get_daily_impact_for_player(conn, player_name):
 
 def get_impact_rating(limit=20):
     conn = get_db()
-    day_dates = get_last_game_dates(conn, 8)
-    day_maps = {day: estimate_day_maps(conn, day) for day in day_dates}
     rows = conn.execute(
         f"SELECT DISTINCT ps.player_name FROM player_stats ps JOIN matches m ON ps.match_id = m.id WHERE 1=1 {ACTIVE_FILTER_SQL} ORDER BY ps.player_name"
     ).fetchall()
     players = []
     for row in rows:
-        summary = get_player_last8_impact_summary(conn, row["player_name"], day_dates, day_maps)
-        players.append(summary)
+        name = row["player_name"]
+        p_dates = get_player_last_dates(conn, name, 8)
+        p_maps = {d: estimate_day_maps(conn, d) for d in p_dates}
+        players.append(get_player_last8_impact_summary(conn, name, p_dates, p_maps))
     players.sort(key=lambda x: (0 if x["games"] >= 3 else 1, -x["impact"], x["player_name"]))
     players = players[:limit]
     conn.close()
@@ -251,7 +268,7 @@ def get_kd_rating(limit=20):
                SUM(ps.kills) AS kills, SUM(ps.deaths) AS deaths
         FROM player_stats ps
         JOIN matches m ON ps.match_id = m.id
-        WHERE 1=1 {ACTIVE_FILTER_SQL}
+        WHERE {PLAYER_LAST8_IN}
         GROUP BY ps.player_name
         ORDER BY CASE WHEN games >= 3 THEN 0 ELSE 1 END, kd DESC LIMIT ?
     """
@@ -270,7 +287,7 @@ def get_hs_rating(limit=20):
                ROUND(AVG(ps.kd), 2) AS kd
         FROM player_stats ps
         JOIN matches m ON ps.match_id = m.id
-        WHERE 1=1 {ACTIVE_FILTER_SQL}
+        WHERE {PLAYER_LAST8_IN}
         GROUP BY ps.player_name
         ORDER BY CASE WHEN games >= 3 THEN 0 ELSE 1 END, hs DESC LIMIT ?
     """
@@ -280,75 +297,65 @@ def get_hs_rating(limit=20):
 
 
 def get_winrate_stats(limit=20, min_days=1, last_n=8):
+    """Винрейт по последним N игровым дням КАЖДОГО игрока (персонально)."""
     conn = get_db()
-    days = conn.execute(
-        "SELECT DISTINCT match_date FROM matches ORDER BY match_date DESC LIMIT ?", (last_n,)
-    ).fetchall()
-    day_dates = [d[0] for d in days]
-    if not day_dates:
-        conn.close()
-        return []
-
-    day_dates_sorted = sorted(day_dates)
-    placeholders = ','.join('?' * len(day_dates_sorted))
-
-    # Матчи за эти дни
-    matches = conn.execute(f"""
-        SELECT m.id, m.match_date, m.winner, m.score_a, m.score_b
-        FROM matches m
-        WHERE m.match_date IN ({placeholders})
-        ORDER BY m.match_date, m.id
-    """, day_dates_sorted).fetchall()
-
-    # Определяем победителя дня
-    day_winners = {}
-    for d in day_dates_sorted:
-        day_matches = [r for r in matches if r["match_date"] == d]
-        a_wins = sum(1 for r in day_matches if r["winner"] == "A")
-        b_wins = sum(1 for r in day_matches if r["winner"] == "B")
-        if a_wins > b_wins:
-            day_winners[d] = "Team A"
-        elif b_wins > a_wins:
-            day_winners[d] = "Team B"
-        else:
-            # Ничья — считаем сумму раундов
-            a_rounds = sum(r["score_a"] or 0 for r in day_matches)
-            b_rounds = sum(r["score_b"] or 0 for r in day_matches)
-            day_winners[d] = "Team A" if a_rounds >= b_rounds else "Team B"
-
-    rows = conn.execute(f"""
-        SELECT DISTINCT ps.player_name, ps.team, m.match_date
-        FROM player_stats ps
-        JOIN matches m ON ps.match_id=m.id
-        WHERE m.match_date IN ({placeholders})
-    """, day_dates_sorted).fetchall()
-    conn.close()
-
-    # Собираем по игрокам — один день = один результат
-    players = {}
-    for row in rows:
-        name = row["player_name"]
-        day = row["match_date"]
-        if name not in players:
-            players[name] = {"won": 0, "seq": {}, "day_count": 0}
-        if day not in players[name]["seq"]:
-            players[name]["day_count"] += 1
-            won = row["team"] == day_winners[day]
-            players[name]["seq"][day] = won
-            if won:
-                players[name]["won"] += 1
-
+    player_rows = conn.execute("SELECT DISTINCT player_name FROM player_stats").fetchall()
     out = []
-    for name, s in players.items():
-        if s["day_count"] < min_days:
+    for pr in player_rows:
+        name = pr["player_name"]
+        dates = get_player_last_dates(conn, name, last_n)
+        if not dates:
             continue
-        seq = [s["seq"].get(d) for d in day_dates_sorted]
-        played = sum(1 for v in seq if v is not None)
-        won = s["won"]
+        placeholders = ','.join('?' * len(dates))
+
+        matches = conn.execute(f"""
+            SELECT m.id, m.match_date, m.winner, m.score_a, m.score_b
+            FROM matches m
+            WHERE m.match_date IN ({placeholders})
+            ORDER BY m.match_date, m.id
+        """, dates).fetchall()
+
+        day_winners = {}
+        for d in dates:
+            day_matches = [r for r in matches if r["match_date"] == d]
+            a_wins = sum(1 for r in day_matches if r["winner"] == "A")
+            b_wins = sum(1 for r in day_matches if r["winner"] == "B")
+            if a_wins > b_wins:
+                day_winners[d] = "Team A"
+            elif b_wins > a_wins:
+                day_winners[d] = "Team B"
+            else:
+                a_rounds = sum(r["score_a"] or 0 for r in day_matches)
+                b_rounds = sum(r["score_b"] or 0 for r in day_matches)
+                day_winners[d] = "Team A" if a_rounds >= b_rounds else "Team B"
+
+        rows = conn.execute(f"""
+            SELECT DISTINCT ps.team, m.match_date
+            FROM player_stats ps
+            JOIN matches m ON ps.match_id=m.id
+            WHERE ps.player_name = ? AND m.match_date IN ({placeholders})
+        """, (name, *dates)).fetchall()
+
+        seq = []
+        played = won = 0
+        for d in dates:
+            row = next((r for r in rows if r["match_date"] == d), None)
+            if row is None:
+                continue
+            w = (row["team"] == day_winners[d])
+            seq.append(w)
+            played += 1
+            if w:
+                won += 1
+
+        if played < min_days:
+            continue
         lost = played - won
         wr = round(won * 100.0 / played, 1)
-        bar = "".join("W" if v else "L" for v in seq if v is not None)
+        bar = "".join("W" if v else "L" for v in seq)
         out.append({"name": name, "played": played, "won": won, "lost": lost, "wr": wr, "bar": bar})
+
+    conn.close()
     out.sort(key=lambda x: (0 if x["played"] >= 3 else 1, -x["wr"], -x["played"]))
     return out[:limit]
 
@@ -541,8 +548,6 @@ def get_medals_stats():
         return []
 
     conn = get_db()
-    day_dates = get_last_game_dates(conn, 8)
-    day_maps = {day: estimate_day_maps(conn, day) for day in day_dates}
     games_rows = conn.execute("""
         SELECT ps.player_name, COUNT(DISTINCT m.match_date) AS games
         FROM player_stats ps
@@ -555,7 +560,7 @@ def get_medals_stats():
     out = []
     for name, stats in medal_stats.items():
         medal_days = stats["_medal_days"] or 1
-        avg_impact = get_player_last8_impact_summary(conn, name, day_dates, day_maps)["impact"]
+        avg_impact = get_player_last8_impact_summary(conn, name)["impact"]
         out.append({
             "player_name": name,
             "mvp_count": stats["mvp_count"],
@@ -587,7 +592,7 @@ def get_clutch_rating(limit=20):
                ROUND(AVG(ps.clutch_1v5*5 + ps.clutch_1v4*4 + ps.clutch_1v3*3 + ps.clutch_1v2*2 + ps.clutch_1v1), 2) AS score
         FROM player_stats ps
         JOIN matches m ON ps.match_id = m.id
-        WHERE 1=1 {ACTIVE_FILTER_SQL}
+        WHERE {PLAYER_LAST8_IN}
         GROUP BY ps.player_name
         HAVING ROUND(AVG(ps.clutch_1v5 + ps.clutch_1v4 + ps.clutch_1v3 + ps.clutch_1v2 + ps.clutch_1v1), 2) > 0
         ORDER BY CASE WHEN games >= 3 THEN 0 ELSE 1 END, score DESC
@@ -599,13 +604,8 @@ def get_clutch_rating(limit=20):
 
 
 def get_entry_rating(limit=20):
-    """Статистика по энтри за последние 8 игровых дней: first kills / first deaths / разница."""
+    """Статистика по энтри за последние 8 игровых дней КАЖДОГО игрока: first kills / first deaths / разница."""
     conn = get_db()
-    day_dates = get_last_game_dates(conn, 8)
-    if not day_dates:
-        conn.close()
-        return []
-    placeholders = ",".join("?" for _ in day_dates)
     sql = f"""
         SELECT ps.player_name,
                COUNT(DISTINCT m.match_date) AS games,
@@ -616,20 +616,25 @@ def get_entry_rating(limit=20):
                ROUND(AVG(COALESCE(ps.fd, 0)), 2) AS fd_avg
         FROM player_stats ps
         JOIN matches m ON ps.match_id = m.id
-        WHERE m.match_date IN ({placeholders})
+        WHERE {PLAYER_LAST8_IN}
         GROUP BY ps.player_name
         ORDER BY CASE WHEN games >= 3 THEN 0 ELSE 1 END, diff DESC, ps.player_name
         LIMIT ?
     """
-    rows = conn.execute(sql, (*day_dates, limit)).fetchall()
+    rows = conn.execute(sql, (limit,)).fetchall()
     conn.close()
     return [dict(r) for r in rows]
 
 
 def get_player_card(player_name):
-    """Данные карточки игрока: агрегаты, по дням (до 8), медали."""
+    """Данные карточки игрока: агрегаты ЗА ПОСЛЕДНИЕ 8 ИГРОВЫХ ДНЕЙ ИГРОКА, разбивка по дням, медали (за всё время)."""
     conn = get_db()
-    row = conn.execute("""
+    dates = get_player_last_dates(conn, player_name, 8)
+    if not dates:
+        conn.close()
+        return None
+    placeholders = ",".join("?" for _ in dates)
+    row = conn.execute(f"""
         SELECT COUNT(DISTINCT m.match_date) AS days,
                COUNT(*) AS matches,
                SUM(ps.kills) AS kills, SUM(ps.deaths) AS deaths, SUM(ps.assists) AS assists,
@@ -642,8 +647,8 @@ def get_player_card(player_name):
                SUM(COALESCE(ps.multikill_5k,0)) AS mk5, SUM(COALESCE(ps.multikill_4k,0)) AS mk4,
                SUM(COALESCE(ps.multikill_3k,0)) AS mk3, SUM(COALESCE(ps.multikill_2k,0)) AS mk2
         FROM player_stats ps JOIN matches m ON ps.match_id = m.id
-        WHERE ps.player_name = ?
-    """, (player_name,)).fetchone()
+        WHERE ps.player_name = ? AND m.match_date IN ({placeholders})
+    """, (player_name, *dates)).fetchone()
 
     if not row or not row["matches"]:
         conn.close()
