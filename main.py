@@ -120,10 +120,11 @@ def compute_day_impact(day_stats, maps):
     deaths = float(day_stats["deaths"] or 0)
     assists = float(day_stats["assists"] or 0)
     adr = float(day_stats["adr"] or 70)
-    entries = float(day_stats["entries"] or 0) / maps
-    clutch_score = float(day_stats["clutch_score"] or 0) / maps
-    multi_score = float(day_stats["multi_score"] or 0) / maps
-    pm = float(day_stats["pm"] or 0) / maps
+    # За игровой день (день = 1 единица), без деления на число карт
+    entries = float(day_stats["entries"] or 0)
+    clutch_score = float(day_stats["clutch_score"] or 0)
+    multi_score = float(day_stats["multi_score"] or 0)
+    pm = float(day_stats["pm"] or 0)
 
     kpr = kills / rounds
     dpr = deaths / rounds
@@ -261,7 +262,7 @@ def get_kd_rating(limit=20):
     sql = f"""
         SELECT ps.player_name,
                COUNT(DISTINCT m.match_date) AS games,
-               ROUND(AVG(ps.kd), 2) AS kd,
+               ROUND(CAST(SUM(ps.kills) AS REAL) / MAX(SUM(ps.deaths), 1), 2) AS kd,
                ROUND(AVG(ps.adr), 1) AS adr,
                SUM(ps.kills) AS kills, SUM(ps.deaths) AS deaths
         FROM player_stats ps
@@ -578,25 +579,24 @@ def get_medals_stats():
 
 
 def get_clutch_rating(limit=20):
-    """Клатчи за последние 8 игровых дней КАЖДОГО игрока: суммы 1v1..1v5, всего и очки."""
+    """Клатчи за последние 8 игровых дней КАЖДОГО игрока: в среднем ЗА ИГРОВОЙ ДЕНЬ."""
     conn = get_db()
     sql = f"""
         SELECT ps.player_name,
                COUNT(DISTINCT m.match_date) AS games,
-               COUNT(*) AS matches,
-               SUM(COALESCE(ps.clutch_1v5, 0)) AS c5,
-               SUM(COALESCE(ps.clutch_1v4, 0)) AS c4,
-               SUM(COALESCE(ps.clutch_1v3, 0)) AS c3,
-               SUM(COALESCE(ps.clutch_1v2, 0)) AS c2,
-               SUM(COALESCE(ps.clutch_1v1, 0)) AS c1,
-               SUM(COALESCE(ps.clutch_1v5,0) + COALESCE(ps.clutch_1v4,0) + COALESCE(ps.clutch_1v3,0) + COALESCE(ps.clutch_1v2,0) + COALESCE(ps.clutch_1v1,0)) AS total,
-               SUM(COALESCE(ps.clutch_1v5,0)*5 + COALESCE(ps.clutch_1v4,0)*4 + COALESCE(ps.clutch_1v3,0)*3 + COALESCE(ps.clutch_1v2,0)*2 + COALESCE(ps.clutch_1v1,0)) AS score
+               ROUND(CAST(SUM(COALESCE(ps.clutch_1v5, 0)) AS REAL) / COUNT(DISTINCT m.match_date), 2) AS c5,
+               ROUND(CAST(SUM(COALESCE(ps.clutch_1v4, 0)) AS REAL) / COUNT(DISTINCT m.match_date), 2) AS c4,
+               ROUND(CAST(SUM(COALESCE(ps.clutch_1v3, 0)) AS REAL) / COUNT(DISTINCT m.match_date), 2) AS c3,
+               ROUND(CAST(SUM(COALESCE(ps.clutch_1v2, 0)) AS REAL) / COUNT(DISTINCT m.match_date), 2) AS c2,
+               ROUND(CAST(SUM(COALESCE(ps.clutch_1v1, 0)) AS REAL) / COUNT(DISTINCT m.match_date), 2) AS c1,
+               ROUND(CAST(SUM(COALESCE(ps.clutch_1v5,0) + COALESCE(ps.clutch_1v4,0) + COALESCE(ps.clutch_1v3,0) + COALESCE(ps.clutch_1v2,0) + COALESCE(ps.clutch_1v1,0)) AS REAL) / COUNT(DISTINCT m.match_date), 2) AS total,
+               ROUND(CAST(SUM(COALESCE(ps.clutch_1v5,0)*5 + COALESCE(ps.clutch_1v4,0)*4 + COALESCE(ps.clutch_1v3,0)*3 + COALESCE(ps.clutch_1v2,0)*2 + COALESCE(ps.clutch_1v1,0)) AS REAL) / COUNT(DISTINCT m.match_date), 2) AS score
         FROM player_stats ps
         JOIN matches m ON ps.match_id = m.id
         WHERE {PLAYER_LAST8_IN}
         GROUP BY ps.player_name
-        HAVING total > 0
-        ORDER BY CASE WHEN games >= 3 THEN 0 ELSE 1 END, score DESC, total DESC
+        HAVING SUM(COALESCE(ps.clutch_1v5,0)+COALESCE(ps.clutch_1v4,0)+COALESCE(ps.clutch_1v3,0)+COALESCE(ps.clutch_1v2,0)+COALESCE(ps.clutch_1v1,0)) > 0
+        ORDER BY CASE WHEN games >= 3 THEN 0 ELSE 1 END, score DESC
         LIMIT ?
     """
     rows = conn.execute(sql, (limit,)).fetchall()
@@ -613,8 +613,8 @@ def get_entry_rating(limit=20):
                SUM(COALESCE(ps.fk, 0)) AS fk,
                SUM(COALESCE(ps.fd, 0)) AS fd,
                SUM(COALESCE(ps.fk, 0)) - SUM(COALESCE(ps.fd, 0)) AS diff,
-               ROUND(AVG(COALESCE(ps.fk, 0)), 2) AS fk_avg,
-               ROUND(AVG(COALESCE(ps.fd, 0)), 2) AS fd_avg
+               ROUND(CAST(SUM(COALESCE(ps.fk, 0)) AS REAL) / MAX(COUNT(DISTINCT m.match_date), 1), 2) AS fk_avg,
+               ROUND(CAST(SUM(COALESCE(ps.fd, 0)) AS REAL) / MAX(COUNT(DISTINCT m.match_date), 1), 2) AS fd_avg
         FROM player_stats ps
         JOIN matches m ON ps.match_id = m.id
         WHERE {PLAYER_LAST8_IN}
