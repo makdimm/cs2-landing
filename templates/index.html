@@ -175,6 +175,15 @@
   }
   .modal .close:hover { color: var(--text); background: #1c1c2a; }
   .modal h2 { font-size: 1.35rem; font-weight: 800; }
+  .p-head { display: flex; align-items: center; gap: 16px; margin-bottom: 14px; }
+  .avatar {
+    width: 86px; height: 86px; border-radius: 50%; flex: 0 0 auto; overflow: hidden;
+    border: 2px solid var(--border); background: linear-gradient(135deg, #4f7ef6, #ff2d55);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .avatar span { font-size: 1.7rem; font-weight: 800; color: #fff; letter-spacing: .02em; }
+  .avatar-hint { font-size: .68rem; color: var(--text-dim); margin-top: 6px; }
   .modal .p-sub { color: var(--text-dim); font-size: .8rem; margin: 2px 0 14px; }
   .medals-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
   .medal-pill { padding: 4px 12px; border-radius: 100px; border: 1px solid var(--border); font-size: .78rem; }
@@ -488,8 +497,12 @@ function fmtNum(v, d) {
 function renderPlayer(el, d) {
   const t = d.totals || {}, m = d.medals || {};
   let h = '<button class="close" onclick="closePlayer()">✕</button>';
-  h += '<h2>' + escapeHTML(d.name) + '</h2>';
-  h += '<div class="p-sub">' + (t.days || 0) + ' игровых дней · ' + (t.matches || 0) + ' матчей</div>';
+  const initials = (d.name || '?').replace(/[^A-Za-z\u0410-\u044f\u0401\u04510-9]+/g, ' ').trim().split(' ').map(w => w[0] || '').join('').slice(0, 2).toUpperCase() || '?';
+  h += '<div class="p-head">';
+  h += '<div class="avatar">' + (d.photo ? '<img src="' + d.photo + '" alt="" onerror="this.parentNode.innerHTML=&#39;<span>' + escapeHTML(initials) + '</span>&#39;">' : '<span>' + escapeHTML(initials) + '</span>') + '</div>';
+  h += '<div><h2>' + escapeHTML(d.name) + '</h2>';
+  h += '<div class="p-sub">' + (t.days || 0) + ' игровых дней · ' + (t.matches || 0) + ' матчей</div></div>';
+  h += '</div>';
 
   if (m.mvp || m.evp || m.worst) {
     h += '<div class="medals-row">';

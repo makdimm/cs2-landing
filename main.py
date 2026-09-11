@@ -1,10 +1,12 @@
 from fastapi import FastAPI, Request, Query
 from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 import sqlite3
 import os
 import shutil
 import asyncio
+from urllib.parse import quote
 
 app = FastAPI(title="CS2 HiddenAI")
 
@@ -12,6 +14,27 @@ DB_PATH = os.getenv("DB_PATH", "/db/cs_bot.db")
 WORK_DB = "/tmp/cs_bot_copy.db"
 
 REFRESH_INTERVAL = int(os.getenv("DB_REFRESH_SEC", "30"))
+
+PHOTOS_ROOT = "photos"
+PHOTOS_PLAYERS = os.path.join(PHOTOS_ROOT, "players")
+os.makedirs(PHOTOS_PLAYERS, exist_ok=True)
+
+app.mount("/photos", StaticFiles(directory=PHOTOS_ROOT), name="photos")
+
+
+def find_player_photo(player_name):
+    """Ищет фото игрока в photos/players/<ник>.<ext>, затем в photos/<ник>.<ext>.
+    Возвращает URL для отдачи или None."""
+    exts = (".jpg", ".jpeg", ".png", ".webp", ".JPG", ".JPEG", ".PNG", ".WEBP")
+    for rel in (PHOTOS_PLAYERS, PHOTOS_ROOT):
+        for ext in exts:
+            path = os.path.join(rel, player_name + ext)
+            if os.path.isfile(path):
+                url = "/photos/" + quote(rel.replace(PHOTOS_ROOT + "/", "") + "/" + player_name + ext, safe="")
+                if rel == PHOTOS_ROOT:
+                    url = "/photos/" + quote(player_name + ext, safe="")
+                return url
+    return None
 
 def init_db():
     if os.path.exists(DB_PATH):
@@ -660,7 +683,8 @@ def get_player_card(player_name):
         if w.get("name") == player_name:
             medals["worst"] += 1
 
-    return {"name": player_name, "totals": totals, "by_day": by_day, "medals": medals}
+    return {"name": player_name, "totals": totals, "by_day": by_day, "medals": medals,
+            "photo": find_player_photo(player_name)}
 
 
 # ── API endpoints ──

@@ -7,6 +7,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY main.py .
 COPY templates/ templates/
+COPY photos/ photos/
 
 EXPOSE 8080
 
