@@ -603,6 +603,66 @@ def get_entry_rating(limit=20):
     return [dict(r) for r in rows]
 
 
+def get_player_card(player_name):
+    """Данные карточки игрока: агрегаты, по дням (до 8), медали."""
+    conn = get_db()
+    row = conn.execute("""
+        SELECT COUNT(DISTINCT m.match_date) AS days,
+               COUNT(*) AS matches,
+               SUM(ps.kills) AS kills, SUM(ps.deaths) AS deaths, SUM(ps.assists) AS assists,
+               ROUND(AVG(ps.adr), 1) AS adr, ROUND(AVG(ps.hs_percent), 1) AS hs,
+               SUM(COALESCE(ps.fk, 0)) AS fk, SUM(COALESCE(ps.fd, 0)) AS fd,
+               SUM(COALESCE(ps.plus_minus, 0)) AS pm,
+               SUM(COALESCE(ps.clutch_1v5,0)) AS c5, SUM(COALESCE(ps.clutch_1v4,0)) AS c4,
+               SUM(COALESCE(ps.clutch_1v3,0)) AS c3, SUM(COALESCE(ps.clutch_1v2,0)) AS c2,
+               SUM(COALESCE(ps.clutch_1v1,0)) AS c1,
+               SUM(COALESCE(ps.multikill_5k,0)) AS mk5, SUM(COALESCE(ps.multikill_4k,0)) AS mk4,
+               SUM(COALESCE(ps.multikill_3k,0)) AS mk3, SUM(COALESCE(ps.multikill_2k,0)) AS mk2
+        FROM player_stats ps JOIN matches m ON ps.match_id = m.id
+        WHERE ps.player_name = ?
+    """, (player_name,)).fetchone()
+
+    if not row or not row["matches"]:
+        conn.close()
+        return None
+
+    totals = dict(row)
+    totals["kd"] = round((totals["kills"] or 0) / max(totals["deaths"] or 0, 1), 2)
+    totals["clutch_score"] = (totals["c5"] or 0) * 5 + (totals["c4"] or 0) * 4 + (totals["c3"] or 0) * 3 + (totals["c2"] or 0) * 2 + (totals["c1"] or 0)
+
+    days = conn.execute("""
+        SELECT m.match_date AS date,
+               SUM(ps.kills) AS kills, SUM(ps.deaths) AS deaths,
+               ROUND(AVG(ps.adr), 1) AS adr, ROUND(AVG(ps.hs_percent), 1) AS hs,
+               SUM(COALESCE(ps.fk,0)) AS fk, SUM(COALESCE(ps.fd,0)) AS fd,
+               SUM(COALESCE(ps.plus_minus,0)) AS pm,
+               SUM(COALESCE(ps.clutch_1v5,0)*5 + COALESCE(ps.clutch_1v4,0)*4 + COALESCE(ps.clutch_1v3,0)*3 + COALESCE(ps.clutch_1v2,0)*2 + COALESCE(ps.clutch_1v1,0)) AS clutch_score
+        FROM player_stats ps JOIN matches m ON ps.match_id = m.id
+        WHERE ps.player_name = ?
+        GROUP BY m.match_date ORDER BY m.match_date DESC LIMIT 8
+    """, (player_name,)).fetchall()
+    by_day = []
+    for d in days:
+        dd = dict(d)
+        dd["kd"] = round((dd["kills"] or 0) / max(dd["deaths"] or 0, 1), 2)
+        by_day.append(dd)
+    conn.close()
+
+    medals = {"mvp": 0, "evp": 0, "worst": 0}
+    for day in get_mvp_evp():
+        mvp = day.get("mvp") or {}
+        if mvp.get("name") == player_name:
+            medals["mvp"] += 1
+        for e in day.get("evp", []):
+            if (e or {}).get("name") == player_name:
+                medals["evp"] += 1
+        w = day.get("worst") or {}
+        if w.get("name") == player_name:
+            medals["worst"] += 1
+
+    return {"name": player_name, "totals": totals, "by_day": by_day, "medals": medals}
+
+
 # ── API endpoints ──
 
 @app.get("/api/impact")
@@ -640,6 +700,13 @@ def api_clutches():
 @app.get("/api/entry")
 def api_entry():
     return get_entry_rating()
+
+@app.get("/api/player/{player_name}")
+def api_player(player_name: str):
+    card = get_player_card(player_name)
+    if not card:
+        return {"error": "not found"}
+    return card
 
 @app.get("/api/matches")
 def api_matches():
