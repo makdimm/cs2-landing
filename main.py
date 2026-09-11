@@ -120,11 +120,10 @@ def compute_day_impact(day_stats, maps):
     deaths = float(day_stats["deaths"] or 0)
     assists = float(day_stats["assists"] or 0)
     adr = float(day_stats["adr"] or 70)
-    # За игровой день (день = 1 единица), без деления на число карт
-    entries = float(day_stats["entries"] or 0)
-    clutch_score = float(day_stats["clutch_score"] or 0)
-    multi_score = float(day_stats["multi_score"] or 0)
-    pm = float(day_stats["pm"] or 0)
+    entries = float(day_stats["entries"] or 0) / maps
+    clutch_score = float(day_stats["clutch_score"] or 0) / maps
+    multi_score = float(day_stats["multi_score"] or 0) / maps
+    pm = float(day_stats["pm"] or 0) / maps
 
     kpr = kills / rounds
     dpr = deaths / rounds
