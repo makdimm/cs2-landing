@@ -30,10 +30,8 @@ def find_player_photo(player_name):
         for ext in exts:
             path = os.path.join(rel, player_name + ext)
             if os.path.isfile(path):
-                url = "/photos/" + quote(rel.replace(PHOTOS_ROOT + "/", "") + "/" + player_name + ext, safe="")
-                if rel == PHOTOS_ROOT:
-                    url = "/photos/" + quote(player_name + ext, safe="")
-                return url
+                prefix = "/photos/players/" if rel == PHOTOS_PLAYERS else "/photos/"
+                return prefix + quote(player_name + ext, safe="")
     return None
 
 def init_db():
