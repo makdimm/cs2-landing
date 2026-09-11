@@ -145,6 +145,12 @@
     content: ''; position: absolute; inset: 0 auto 0 0; width: 3px;
     background: linear-gradient(180deg, var(--gold), transparent);
   }
+  .hero-main .hero-top { display: flex; align-items: center; gap: 14px; }
+  .hero-main .hero-photo {
+    width: 84px; height: 84px; border-radius: 50%; object-fit: cover; flex: 0 0 auto;
+    border: 2px solid rgba(255, 215, 0, .55); box-shadow: 0 0 0 4px rgba(255, 215, 0, .08);
+  }
+  .hero-main .hero-id { min-width: 0; }
   .hero-main .hero-tag { font-size: .7rem; letter-spacing: .14em; text-transform: uppercase; color: var(--text-dim); }
   .hero-main .hero-name { font-size: 1.55rem; font-weight: 800; color: var(--gold); margin-top: 4px; line-height: 1.15; }
   .hero-main .hero-metrics { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 14px; }
@@ -177,6 +183,7 @@
   @media (max-width: 760px) {
     .mvp-hero { grid-template-columns: 1fr; }
     .mvp-hero .hero-name { font-size: 1.3rem; }
+    .hero-main .hero-photo { width: 64px; height: 64px; }
     .evp-row .vals { font-size: .74rem; }
   }
 
@@ -255,8 +262,13 @@
   <!-- MVP / EVP последнего дня — герой-блок (оформление 11.09) -->
   <div class="mvp-hero">
     <div class="hero-main">
-      <div class="hero-tag">MVP последнего дня · {{ last_day.date }}</div>
-      <div class="hero-name">🏆 {{ last_day.mvp.name }}</div>
+      <div class="hero-top">
+        {% if mvp_photo %}<img class="hero-photo" src="{{ mvp_photo }}" alt="{{ last_day.mvp.name }}">{% endif %}
+        <div class="hero-id">
+          <div class="hero-tag">MVP последнего дня · {{ last_day.date }}</div>
+          <div class="hero-name">🏆 {{ last_day.mvp.name }}</div>
+        </div>
+      </div>
       <div class="hero-metrics">
         <div class="metric"><div class="m-val">{{ "%.2f"|format(last_day.mvp.kd) }}</div><div class="m-lbl">K/D</div></div>
         <div class="metric"><div class="m-val">{{ "%.1f"|format(last_day.mvp.adr) }}</div><div class="m-lbl">ADR</div></div>

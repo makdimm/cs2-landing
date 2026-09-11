@@ -772,10 +772,14 @@ def index(request: Request):
     impact = get_impact_rating()
     mvp_data = get_mvp_evp()
     last_day = mvp_data[0] if mvp_data else None
+    mvp_photo = None
+    if last_day and last_day.get("mvp"):
+        mvp_photo = find_player_photo(last_day["mvp"]["name"])
     return templates.TemplateResponse("index.html", {
         "request": request,
         "impact": impact,
-        "last_day": last_day
+        "last_day": last_day,
+        "mvp_photo": mvp_photo
     })
 
 
