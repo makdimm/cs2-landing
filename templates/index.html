@@ -23,7 +23,15 @@
   }
   body {
     font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif;
-    background: var(--bg);
+    background-color: var(--bg);
+    background-image:
+      radial-gradient(1100px 620px at 50% -10%, rgba(79,126,246,.12), transparent 70%),
+      linear-gradient(rgba(10,10,15,.86), rgba(10,10,15,.93)),
+      url('/photos/cs2_bg_16x9.jpeg');
+    background-size: auto, auto, cover;
+    background-position: center top, center center, center center;
+    background-repeat: no-repeat;
+    background-attachment: fixed, fixed, fixed;
     color: var(--text);
     line-height: 1.5;
     min-height: 100vh;
