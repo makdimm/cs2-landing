@@ -133,29 +133,8 @@
 </head>
 <body>
 <div class="container">
-  <div class="header">
-    <h1><span>CS2</span> HiddenAI</h1>
-    <div class="sub">Статистика игроков · Рейтинг · Матчи</div>
-  </div>
-
-  <div class="filters">
-    <button class="filter-btn active" data-tab="impact">Импакт</button>
-    <button class="filter-btn" data-tab="kd">K/D / ADR</button>
-    <button class="filter-btn" data-tab="winrate">Винрейт</button>
-    <button class="filter-btn" data-tab="days">По дням</button>
-    <button class="filter-btn" data-tab="mvp">MVP/EVP</button>
-    <button class="filter-btn" data-tab="medals">Медали</button>
-    <button class="filter-btn" data-tab="clutches">Клатчи</button>
-    <button class="filter-btn" data-tab="hs">HS%</button>
-    <button class="filter-btn" data-tab="entry">Энтри</button>
-  </div>
-
-  <div class="formula">
-    Impact = (KPR*1.5 - DPR*0.75 + APR*0.6 + ADR*0.1 + entries/maps*1.5 + clutch/maps*1.5 + multi/maps*0.75 + pm/maps*0.15) / 10
-  </div>
-
   {% if last_day %}
-  <!-- MVP/EVP последнего дня -->
+  <!-- MVP/EVP последнего дня — ПЕРВЫЙ БЛОК (по просьбе Димы 11.09) -->
   <div style="margin-bottom:16px;">
     <div class="rating-title"><span class="star">🏆</span> MVP последнего дня ({{ last_day.date }})</div>
     <div class="mvp-card">
@@ -180,6 +159,27 @@
     </div>
   </div>
   {% endif %}
+
+  <div class="header">
+    <h1><span>CS2</span> HiddenAI</h1>
+    <div class="sub">Статистика игроков · Рейтинг · Матчи</div>
+  </div>
+
+  <div class="filters">
+    <button class="filter-btn active" data-tab="impact">Импакт</button>
+    <button class="filter-btn" data-tab="kd">K/D / ADR</button>
+    <button class="filter-btn" data-tab="winrate">Винрейт</button>
+    <button class="filter-btn" data-tab="days">По дням</button>
+    <button class="filter-btn" data-tab="mvp">MVP/EVP</button>
+    <button class="filter-btn" data-tab="medals">Медали</button>
+    <button class="filter-btn" data-tab="clutches">Клатчи</button>
+    <button class="filter-btn" data-tab="hs">HS%</button>
+    <button class="filter-btn" data-tab="entry">Энтри</button>
+  </div>
+
+  <div class="formula">
+    Impact = (KPR*1.5 - DPR*0.75 + APR*0.6 + ADR*0.1 + entries/maps*1.5 + clutch/maps*1.5 + multi/maps*0.75 + pm/maps*0.15) / 10
+  </div>
 
   <div id="tab-impact" class="tab-content active">
     <div class="rating-title"><span class="star">★</span> Импакт-рейтинг</div>
