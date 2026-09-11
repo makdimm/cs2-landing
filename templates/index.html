@@ -302,7 +302,7 @@
 
   <div class="header">
     <h1><span>CS2</span> HiddenAI</h1>
-    <div class="sub">Статистика игроков · Рейтинг · Матчи</div>
+    <div class="sub">Статистика игроков · Рейтинг · Игровые дни</div>
   </div>
 
   <div class="filters">
@@ -322,10 +322,10 @@
   </div>
 
   <div id="tab-impact" class="tab-content active">
-    <div class="rating-title"><span class="star">★</span> Импакт-рейтинг <span style="font-size:.72rem;color:var(--text-dim);font-weight:400;">· за 8 игр игрока</span></div>
+    <div class="rating-title"><span class="star">★</span> Импакт-рейтинг <span style="font-size:.72rem;color:var(--text-dim);font-weight:400;">· за 8 игровых дней игрока</span></div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>#</th><th>ИГРОК</th><th>ИГР</th><th>ИМПАКТ</th><th>K/D</th><th>ADR</th><th>ГРАФИК</th></tr></thead>
+        <thead><tr><th>#</th><th>ИГРОК</th><th>ДНЕЙ</th><th>ИМПАКТ</th><th>K/D</th><th>ADR</th><th>ГРАФИК</th></tr></thead>
         <tbody>
           {% set ns = namespace(num=0) %}
           {% for p in impact %}
@@ -403,7 +403,7 @@ function escapeHTML(str) {
 }
 
 function renderKD(data) {
-  let h = '<div class="rating-title"><span class="star">★</span> K/D — ADR <span style="font-size:.72rem;color:var(--text-dim);font-weight:400;">· за 8 игр игрока</span></div><div class="table-wrap"><table><thead><tr><th>#</th><th>ИГРОК</th><th>ИГР</th><th>K/D</th><th>ADR</th><th>УБИТО</th><th>СМЕРТЕЙ</th></tr></thead><tbody>';
+  let h = '<div class="rating-title"><span class="star">★</span> K/D — ADR <span style="font-size:.72rem;color:var(--text-dim);font-weight:400;">· за 8 игровых дней игрока</span></div><div class="table-wrap"><table><thead><tr><th>#</th><th>ИГРОК</th><th>ДНЕЙ</th><th>K/D</th><th>ADR</th><th>УБИТО</th><th>СМЕРТЕЙ</th></tr></thead><tbody>';
   let num = 0;
   data.forEach((p,i) => {
     if (p.games >= 3) num++;
@@ -414,7 +414,7 @@ function renderKD(data) {
 }
 
 function renderHS(data) {
-  let h = '<div class="rating-title"><span class="star">★</span> HS% — хэдшоты <span style="font-size:.72rem;color:var(--text-dim);font-weight:400;">· за 8 игр игрока</span></div><div class="table-wrap"><table><thead><tr><th>#</th><th>ИГРОК</th><th>ИГР</th><th>HS%</th><th>K/D</th><th>УБИТО</th></tr></thead><tbody>';
+  let h = '<div class="rating-title"><span class="star">★</span> HS% — хэдшоты <span style="font-size:.72rem;color:var(--text-dim);font-weight:400;">· за 8 игровых дней игрока</span></div><div class="table-wrap"><table><thead><tr><th>#</th><th>ИГРОК</th><th>ДНЕЙ</th><th>HS%</th><th>K/D</th><th>УБИТО</th></tr></thead><tbody>';
   let num = 0;
   data.forEach((p,i) => {
     if (p.games >= 3) num++;
@@ -425,7 +425,7 @@ function renderHS(data) {
 }
 
 function renderEntry(data) {
-  let h = '<div class="rating-title"><span class="star">★</span> Энтри — первые убийства / первые смерти <span style="font-size:.72rem;color:var(--text-dim);font-weight:400;">· за 8 игр игрока</span></div><div class="table-wrap"><table><thead><tr><th>#</th><th>ИГРОК</th><th>ИГР</th><th>FIRST KILLS</th><th>FIRST DEATHS</th><th>РАЗНИЦА</th><th>FK/день</th><th>FD/день</th></tr></thead><tbody>';
+  let h = '<div class="rating-title"><span class="star">★</span> Энтри — первые убийства / первые смерти <span style="font-size:.72rem;color:var(--text-dim);font-weight:400;">· за 8 игровых дней игрока</span></div><div class="table-wrap"><table><thead><tr><th>#</th><th>ИГРОК</th><th>ДНЕЙ</th><th>FIRST KILLS</th><th>FIRST DEATHS</th><th>РАЗНИЦА</th><th>FK/день</th><th>FD/день</th></tr></thead><tbody>';
   let num = 0;
   (data || []).forEach((p) => {
     if (p.games >= 3) num++;
@@ -438,7 +438,7 @@ function renderEntry(data) {
 }
 
 function renderWinrate(data) {
-  let h = '<div class="rating-title"><span class="star">★</span> Винрейт <span style="font-size:.72rem;color:var(--text-dim);font-weight:400;">· за 8 игр игрока</span></div><div class="table-wrap"><table><thead><tr><th>#</th><th>ИГРОК</th><th>ИГР</th><th>W</th><th>L</th><th>WIN%</th><th>СТАТУС</th></tr></thead><tbody>';
+  let h = '<div class="rating-title"><span class="star">★</span> Винрейт <span style="font-size:.72rem;color:var(--text-dim);font-weight:400;">· за 8 игровых дней игрока</span></div><div class="table-wrap"><table><thead><tr><th>#</th><th>ИГРОК</th><th>ДНЕЙ</th><th>W</th><th>L</th><th>WIN%</th><th>СТАТУС</th></tr></thead><tbody>';
   let num = 0;
   data.forEach((p,i) => {
     if (p.played >= 3) num++;
@@ -453,7 +453,7 @@ function renderWinrate(data) {
 function renderDays(data) {
   let h = '';
   data.forEach(d => {
-    h += `<div class="rating-title" style="margin-top:20px;">📅 ${d.date} (${d.matches} матча)</div>`;
+    h += `<div class="rating-title" style="margin-top:20px;">📅 ${d.date}</div>`;
     h += '<div class="table-wrap"><table><thead><tr><th>#</th><th>ИГРОК</th><th>K/D</th><th>ADR</th><th>HS%</th><th>+/-</th><th>K</th><th>D</th></tr></thead><tbody>';
     d.players.forEach((p,i) => {
       h += `<tr><td class="num">${i+1}</td><td class="name">${escapeHTML(p.player_name)}</td><td class="impact">${p.kd.toFixed(2)}</td><td class="adr">${p.adr.toFixed(1)}</td><td class="kd">${p.hs.toFixed(1)}%</td><td class="${p.pm > 0 ? 'green' : 'red'}">${p.pm > 0 ? '+' : ''}${p.pm}</td><td class="kd">${p.kills}</td><td class="kd">${p.deaths}</td></tr>`;
@@ -581,7 +581,7 @@ function renderPlayer(el, d) {
   h += '<div class="p-head">';
   h += '<div class="avatar">' + (d.photo ? '<img src="' + d.photo + '" alt="" onerror="this.parentNode.innerHTML=&#39;<span>' + escapeHTML(initials) + '</span>&#39;">' : '<span>' + escapeHTML(initials) + '</span>') + '</div>';
   h += '<div><h2>' + escapeHTML(d.name) + '</h2>';
-  h += '<div class="p-sub">За последние 8 игр: ' + (t.days || 0) + ' игровых дней · ' + (t.matches || 0) + ' матчей</div></div>';
+  h += '<div class="p-sub">За последние 8 игровых дней: ' + (t.days || 0) + ' дней</div></div>';
   h += '</div>';
 
   if (m.mvp || m.evp || m.worst) {
