@@ -578,22 +578,25 @@ def get_medals_stats():
 
 
 def get_clutch_rating(limit=20):
+    """Клатчи за последние 8 игровых дней КАЖДОГО игрока: суммы 1v1..1v5, всего и очки."""
     conn = get_db()
     sql = f"""
         SELECT ps.player_name,
                COUNT(DISTINCT m.match_date) AS games,
-               ROUND(AVG(ps.clutch_1v5), 2) AS c5,
-               ROUND(AVG(ps.clutch_1v4), 2) AS c4,
-               ROUND(AVG(ps.clutch_1v3), 2) AS c3,
-               ROUND(AVG(ps.clutch_1v2), 2) AS c2,
-               ROUND(AVG(ps.clutch_1v1), 2) AS c1,
-               ROUND(AVG(ps.clutch_1v5*5 + ps.clutch_1v4*4 + ps.clutch_1v3*3 + ps.clutch_1v2*2 + ps.clutch_1v1), 2) AS score
+               COUNT(*) AS matches,
+               SUM(COALESCE(ps.clutch_1v5, 0)) AS c5,
+               SUM(COALESCE(ps.clutch_1v4, 0)) AS c4,
+               SUM(COALESCE(ps.clutch_1v3, 0)) AS c3,
+               SUM(COALESCE(ps.clutch_1v2, 0)) AS c2,
+               SUM(COALESCE(ps.clutch_1v1, 0)) AS c1,
+               SUM(COALESCE(ps.clutch_1v5,0) + COALESCE(ps.clutch_1v4,0) + COALESCE(ps.clutch_1v3,0) + COALESCE(ps.clutch_1v2,0) + COALESCE(ps.clutch_1v1,0)) AS total,
+               SUM(COALESCE(ps.clutch_1v5,0)*5 + COALESCE(ps.clutch_1v4,0)*4 + COALESCE(ps.clutch_1v3,0)*3 + COALESCE(ps.clutch_1v2,0)*2 + COALESCE(ps.clutch_1v1,0)) AS score
         FROM player_stats ps
         JOIN matches m ON ps.match_id = m.id
         WHERE {PLAYER_LAST8_IN}
         GROUP BY ps.player_name
-        HAVING ROUND(AVG(ps.clutch_1v5 + ps.clutch_1v4 + ps.clutch_1v3 + ps.clutch_1v2 + ps.clutch_1v1), 2) > 0
-        ORDER BY CASE WHEN games >= 3 THEN 0 ELSE 1 END, score DESC
+        HAVING total > 0
+        ORDER BY CASE WHEN games >= 3 THEN 0 ELSE 1 END, score DESC, total DESC
         LIMIT ?
     """
     rows = conn.execute(sql, (limit,)).fetchall()

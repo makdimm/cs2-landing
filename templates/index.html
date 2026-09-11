@@ -446,9 +446,13 @@ function renderMedals(data) {
 }
 
 function renderClutches(data) {
-  let h = '<div class="rating-title"><span class="star">★</span> Клатчи (среднее за матч) <span style="font-size:.72rem;color:var(--text-dim);font-weight:400;">· за 8 игр игрока</span></div><div class="table-wrap"><table><thead><tr><th>#</th><th>ИГРОК</th><th>ИГР</th><th>1v5</th><th>1v4</th><th>1v3</th><th>1v2</th><th>1v1</th><th>Σ OЧКИ</th></tr></thead><tbody>';
-  data.forEach((p,i) => {
-    h += `<tr><td class="num">${i+1}</td><td class="name">${escapeHTML(p.player_name)}</td><td class="games">${p.games}</td><td>${p.c5||0}</td><td>${p.c4||0}</td><td>${p.c3||0}</td><td>${p.c2||0}</td><td>${p.c1||0}</td><td class="impact">${p.score}</td></tr>`;
+  let h = '<div class="rating-title"><span class="star">★</span> Клатчи <span style="font-size:.72rem;color:var(--text-dim);font-weight:400;">· за 8 игр игрока · выигранные ситуации 1 против N</span></div>';
+  h += '<div style="font-size:.74rem;color:var(--text-dim);margin:-4px 0 10px;">Слева — сколько раз игрок выиграл клатч. <b style="color:var(--text);">Очки</b>: 1v5 = 5 · 1v4 = 4 · 1v3 = 3 · 1v2 = 2 · 1v1 = 1 (чем сложнее — тем дороже). <b style="color:var(--text);">ВСЕГО</b> — сумма всех клатчей.</div>';
+  h += '<div class="table-wrap"><table><thead><tr><th>#</th><th>ИГРОК</th><th>ИГР</th><th>МАТЧЕЙ</th><th>1v5</th><th>1v4</th><th>1v3</th><th>1v2</th><th>1v1</th><th>ВСЕГО</th><th>ОЧКИ</th></tr></thead><tbody>';
+  let num = 0;
+  (data || []).forEach((p, i) => {
+    if (p.games >= 3) num++;
+    h += `<tr><td class="num">${p.games >= 3 ? num : '-'}</td><td class="name">${escapeHTML(p.player_name)}</td><td class="games">${p.games}</td><td class="games">${p.matches || 0}</td><td>${p.c5 || 0}</td><td>${p.c4 || 0}</td><td>${p.c3 || 0}</td><td>${p.c2 || 0}</td><td>${p.c1 || 0}</td><td class="gold">${p.total || 0}</td><td class="impact">${p.score || 0}</td></tr>`;
   });
   h += '</tbody></table></div>';
   document.getElementById('load-clutches').outerHTML = h;
