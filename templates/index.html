@@ -164,9 +164,18 @@
   }
   
   /* ——— Карточка игрока (модалка) ——— */
-  td.name, .mvp-name, .evp-name, .nick, .hero-name, .p-link { cursor: pointer; }
-  td.name:hover, .mvp-name:hover, .evp-name:hover, .nick:hover, .hero-name:hover, .p-link:hover { color: var(--impact); }
-  .p-link { border-bottom: 1px dotted rgba(0,212,255,.5); }
+  td.name, .mvp-name, .evp-name, .nick, .hero-name, .p-link {
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-color: rgba(79, 126, 246, .45);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
+  td.name:hover, .mvp-name:hover, .evp-name:hover, .nick:hover, .hero-name:hover, .p-link:hover {
+    color: var(--impact);
+    text-decoration-color: var(--impact);
+  }
+  .p-link { border-bottom: none; }
   .modal-backdrop {
     position: fixed; inset: 0; background: rgba(5,5,10,.8); z-index: 100;
     display: none; padding: 20px; overflow-y: auto;
