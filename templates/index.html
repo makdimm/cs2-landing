@@ -25,8 +25,8 @@
     font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif;
     background-color: var(--bg);
     background-image:
-      radial-gradient(1100px 620px at 50% -10%, rgba(79,126,246,.12), transparent 70%),
-      linear-gradient(rgba(10,10,15,.62), rgba(10,10,15,.78)),
+      radial-gradient(1100px 620px at 50% -10%, rgba(79,126,246,.10), transparent 70%),
+      linear-gradient(rgba(8,8,12,.74), rgba(8,8,12,.9)),
       url('/photos/cs2_bg_16x9.jpeg');
     background-size: auto, auto, cover;
     background-position: center top, center center, center center;
@@ -78,6 +78,19 @@
   td { padding: 10px 12px; border-bottom: 1px solid rgba(30,30,50,.4); }
   tr:last-child td { border-bottom: none; }
   tr:hover td { background: rgba(79,126,246,.04); }
+
+  /* Мобильные: fixed-фон и жёсткая обрезка выглядят плохо — делаем спокойнее и темнее */
+  @media (max-width: 820px) {
+    body {
+      background-attachment: scroll, scroll, scroll;
+      background-size: auto, auto, auto;
+      background-position: center top, center center, center 30%;
+      background-image:
+        radial-gradient(700px 420px at 50% 0%, rgba(79,126,246,.08), transparent 70%),
+        linear-gradient(rgba(8,8,12,.82), rgba(8,8,12,.94)),
+        url('/photos/cs2_bg_16x9.jpeg');
+    }
+  }
   
   td.num { font-variant-numeric: tabular-nums; text-align: center; width: 32px; }
   td.impact { color: var(--impact); font-weight: 700; font-size: .95rem; }
