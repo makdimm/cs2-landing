@@ -579,29 +579,40 @@ def get_medals_stats():
 
 
 def get_clutch_rating(limit=20):
-    """Клатчи за последние 8 игровых дней КАЖДОГО игрока: в среднем ЗА ИГРОВОЙ ДЕНЬ."""
+    """Клатчи за последние 8 игровых дней КАЖДОГО игрока.
+
+    Отдаём и СУММЫ (за весь период), и СРЕДНЕЕ ЗА ИГРОВОЙ ДЕНЬ:
+    сумма ÷ число игровых дней игрока. Сортировка — по очкам в день.
+    """
     conn = get_db()
     sql = f"""
         SELECT ps.player_name,
                COUNT(DISTINCT m.match_date) AS games,
-               ROUND(CAST(SUM(COALESCE(ps.clutch_1v5, 0)) AS REAL) / COUNT(DISTINCT m.match_date), 2) AS c5,
-               ROUND(CAST(SUM(COALESCE(ps.clutch_1v4, 0)) AS REAL) / COUNT(DISTINCT m.match_date), 2) AS c4,
-               ROUND(CAST(SUM(COALESCE(ps.clutch_1v3, 0)) AS REAL) / COUNT(DISTINCT m.match_date), 2) AS c3,
-               ROUND(CAST(SUM(COALESCE(ps.clutch_1v2, 0)) AS REAL) / COUNT(DISTINCT m.match_date), 2) AS c2,
-               ROUND(CAST(SUM(COALESCE(ps.clutch_1v1, 0)) AS REAL) / COUNT(DISTINCT m.match_date), 2) AS c1,
-               ROUND(CAST(SUM(COALESCE(ps.clutch_1v5,0) + COALESCE(ps.clutch_1v4,0) + COALESCE(ps.clutch_1v3,0) + COALESCE(ps.clutch_1v2,0) + COALESCE(ps.clutch_1v1,0)) AS REAL) / COUNT(DISTINCT m.match_date), 2) AS total,
-               ROUND(CAST(SUM(COALESCE(ps.clutch_1v5,0)*5 + COALESCE(ps.clutch_1v4,0)*4 + COALESCE(ps.clutch_1v3,0)*3 + COALESCE(ps.clutch_1v2,0)*2 + COALESCE(ps.clutch_1v1,0)) AS REAL) / COUNT(DISTINCT m.match_date), 2) AS score
+               SUM(COALESCE(ps.clutch_1v5, 0)) AS c5,
+               SUM(COALESCE(ps.clutch_1v4, 0)) AS c4,
+               SUM(COALESCE(ps.clutch_1v3, 0)) AS c3,
+               SUM(COALESCE(ps.clutch_1v2, 0)) AS c2,
+               SUM(COALESCE(ps.clutch_1v1, 0)) AS c1,
+               SUM(COALESCE(ps.clutch_1v5,0) + COALESCE(ps.clutch_1v4,0) + COALESCE(ps.clutch_1v3,0) + COALESCE(ps.clutch_1v2,0) + COALESCE(ps.clutch_1v1,0)) AS total,
+               SUM(COALESCE(ps.clutch_1v5,0)*5 + COALESCE(ps.clutch_1v4,0)*4 + COALESCE(ps.clutch_1v3,0)*3 + COALESCE(ps.clutch_1v2,0)*2 + COALESCE(ps.clutch_1v1,0)) AS score
         FROM player_stats ps
         JOIN matches m ON ps.match_id = m.id
         WHERE {PLAYER_LAST8_IN}
         GROUP BY ps.player_name
-        HAVING SUM(COALESCE(ps.clutch_1v5,0)+COALESCE(ps.clutch_1v4,0)+COALESCE(ps.clutch_1v3,0)+COALESCE(ps.clutch_1v2,0)+COALESCE(ps.clutch_1v1,0)) > 0
-        ORDER BY CASE WHEN games >= 3 THEN 0 ELSE 1 END, score DESC
+        HAVING total > 0
+        ORDER BY CASE WHEN games >= 3 THEN 0 ELSE 1 END, (CAST(score AS REAL) / games) DESC
         LIMIT ?
     """
     rows = conn.execute(sql, (limit,)).fetchall()
     conn.close()
-    return [dict(r) for r in rows]
+    out = []
+    for r in rows:
+        d = dict(r)
+        days = d["games"] or 1
+        d["score_per_day"] = round(d["score"] / days, 2)
+        d["total_per_day"] = round(d["total"] / days, 2)
+        out.append(d)
+    return out
 
 
 def get_entry_rating(limit=20):

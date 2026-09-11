@@ -455,13 +455,29 @@ function renderMedals(data) {
 }
 
 function renderClutches(data) {
-  let h = '<div class="rating-title"><span class="star">★</span> Клатчи <span style="font-size:.72rem;color:var(--text-dim);font-weight:400;">· за 8 игр игрока · в среднем за игровой день</span></div>';
-  h += '<div style="font-size:.74rem;color:var(--text-dim);margin:-4px 0 10px;">Отбор: <b style="color:var(--text);">последние 8 игровых дней игрока</b>. Значения — <b style="color:var(--text);">в среднем за один игровой день</b> (сумма клатчей ÷ число игровых дней игрока). <b style="color:var(--text);">Очки</b>: 1v5 = 5 · 1v4 = 4 · 1v3 = 3 · 1v2 = 2 · 1v1 = 1.</div>';
-  h += '<div class="table-wrap"><table><thead><tr><th>#</th><th>ИГРОК</th><th>ДНЕЙ</th><th>1v5</th><th>1v4</th><th>1v3</th><th>1v2</th><th>1v1</th><th>ВСЕГО</th><th>ОЧКИ</th></tr></thead><tbody>';
+  let h = '<div class="rating-title"><span class="star">★</span> Клатчи <span style="font-size:.72rem;color:var(--text-dim);font-weight:400;">· последние 8 игровых дней игрока</span></div>';
+  h += '<div style="font-size:.76rem;color:var(--text-dim);margin:-4px 0 10px;line-height:1.6;">'
+     + '<b style="color:var(--text);">Как читать.</b> 1v5…1v1 — сколько таких клатчей игрок выиграл за 8 дней. '
+     + '<b style="color:var(--text);">ОЧКИ</b> — суммарные баллы. '
+     + '<b style="color:var(--text);">В ДЕНЬ</b> — очки, делённые на число игровых дней игрока (по этой цифре идёт сортировка).</div>';
+  const ranked = (data || []).filter(p => p.games >= 3);
+  const top = ranked[0] || (data || [])[0];
+  if (top) {
+    const s = Number(top.score || 0), d = Number(top.games || 1), spd = Number(top.score_per_day != null ? top.score_per_day : s / d);
+    h += '<div class="formula" style="margin-bottom:12px;line-height:1.75;">'
+       + `<b>Формула на примере лидера — ${escapeHTML(top.player_name)} (${d} игровых дней):</b><br>`
+       + `ОЧКИ = 1v5×5 + 1v4×4 + 1v3×3 + 1v2×2 + 1v1×1 = ${top.c5 || 0}×5 + ${top.c4 || 0}×4 + ${top.c3 || 0}×3 + ${top.c2 || 0}×2 + ${top.c1 || 0}×1 = <b>${s}</b><br>`
+       + `В ДЕНЬ = ОЧКИ ÷ игровые дни = ${s} ÷ ${d} = <b>${spd.toFixed(2)}</b>`
+       + '</div>';
+  }
+  h += '<div class="table-wrap"><table><thead><tr><th>#</th><th>ИГРОК</th><th>ДНЕЙ</th><th>1v5</th><th>1v4</th><th>1v3</th><th>1v2</th><th>1v1</th><th>ВСЕГО клатчей</th><th>ОЧКИ</th><th>В ДЕНЬ</th></tr></thead><tbody>';
   let num = 0;
-  (data || []).forEach((p, i) => {
+  (data || []).forEach((p) => {
     if (p.games >= 3) num++;
-    h += `<tr><td class="num">${p.games >= 3 ? num : '-'}</td><td class="name">${escapeHTML(p.player_name)}</td><td class="games">${p.games}</td><td>${p.c5 || 0}</td><td>${p.c4 || 0}</td><td>${p.c3 || 0}</td><td>${p.c2 || 0}</td><td>${p.c1 || 0}</td><td class="gold">${p.total || 0}</td><td class="impact">${p.score || 0}</td></tr>`;
+    h += `<tr><td class="num">${p.games >= 3 ? num : '-'}</td><td class="name">${escapeHTML(p.player_name)}</td><td class="games">${p.games}</td>`
+       + `<td>${p.c5 || 0}</td><td>${p.c4 || 0}</td><td>${p.c3 || 0}</td><td>${p.c2 || 0}</td><td>${p.c1 || 0}</td>`
+       + `<td class="gold">${p.total || 0}</td><td class="kd">${p.score || 0}</td>`
+       + `<td class="impact">${Number(p.score_per_day != null ? p.score_per_day : 0).toFixed(2)}</td></tr>`;
   });
   h += '</tbody></table></div>';
   document.getElementById('load-clutches').outerHTML = h;
