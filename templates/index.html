@@ -262,7 +262,7 @@
   </div>
 
   <div id="tab-impact" class="tab-content active">
-    <div class="rating-title"><span class="star">★</span> Импакт-рейтинг</div>
+    <div class="rating-title"><span class="star">★</span> Импакт-рейтинг <span style="font-size:.72rem;color:var(--text-dim);font-weight:400;">· за 8 игр игрока</span></div>
     <div class="table-wrap">
       <table>
         <thead><tr><th>#</th><th>ИГРОК</th><th>ИГР</th><th>ИМПАКТ</th><th>K/D</th><th>ADR</th><th>ГРАФИК</th></tr></thead>
@@ -343,7 +343,7 @@ function escapeHTML(str) {
 }
 
 function renderKD(data) {
-  let h = '<div class="rating-title"><span class="star">★</span> K/D — ADR</div><div class="table-wrap"><table><thead><tr><th>#</th><th>ИГРОК</th><th>ИГР</th><th>K/D</th><th>ADR</th><th>УБИТО</th><th>СМЕРТЕЙ</th></tr></thead><tbody>';
+  let h = '<div class="rating-title"><span class="star">★</span> K/D — ADR <span style="font-size:.72rem;color:var(--text-dim);font-weight:400;">· за 8 игр игрока</span></div><div class="table-wrap"><table><thead><tr><th>#</th><th>ИГРОК</th><th>ИГР</th><th>K/D</th><th>ADR</th><th>УБИТО</th><th>СМЕРТЕЙ</th></tr></thead><tbody>';
   let num = 0;
   data.forEach((p,i) => {
     if (p.games >= 3) num++;
@@ -354,7 +354,7 @@ function renderKD(data) {
 }
 
 function renderHS(data) {
-  let h = '<div class="rating-title"><span class="star">★</span> HS% — хэдшоты</div><div class="table-wrap"><table><thead><tr><th>#</th><th>ИГРОК</th><th>ИГР</th><th>HS%</th><th>K/D</th><th>УБИТО</th></tr></thead><tbody>';
+  let h = '<div class="rating-title"><span class="star">★</span> HS% — хэдшоты <span style="font-size:.72rem;color:var(--text-dim);font-weight:400;">· за 8 игр игрока</span></div><div class="table-wrap"><table><thead><tr><th>#</th><th>ИГРОК</th><th>ИГР</th><th>HS%</th><th>K/D</th><th>УБИТО</th></tr></thead><tbody>';
   let num = 0;
   data.forEach((p,i) => {
     if (p.games >= 3) num++;
@@ -365,7 +365,7 @@ function renderHS(data) {
 }
 
 function renderEntry(data) {
-  let h = '<div class="rating-title"><span class="star">★</span> Энтри — первые убийства / первые смерти (8 игр)</div><div class="table-wrap"><table><thead><tr><th>#</th><th>ИГРОК</th><th>ИГР</th><th>FIRST KILLS</th><th>FIRST DEATHS</th><th>РАЗНИЦА</th><th>FK/игру</th><th>FD/игру</th></tr></thead><tbody>';
+  let h = '<div class="rating-title"><span class="star">★</span> Энтри — первые убийства / первые смерти <span style="font-size:.72rem;color:var(--text-dim);font-weight:400;">· за 8 игр игрока</span></div><div class="table-wrap"><table><thead><tr><th>#</th><th>ИГРОК</th><th>ИГР</th><th>FIRST KILLS</th><th>FIRST DEATHS</th><th>РАЗНИЦА</th><th>FK/игру</th><th>FD/игру</th></tr></thead><tbody>';
   let num = 0;
   (data || []).forEach((p) => {
     if (p.games >= 3) num++;
@@ -378,7 +378,7 @@ function renderEntry(data) {
 }
 
 function renderWinrate(data) {
-  let h = '<div class="rating-title"><span class="star">★</span> Винрейт</div><div class="table-wrap"><table><thead><tr><th>#</th><th>ИГРОК</th><th>ИГР</th><th>W</th><th>L</th><th>WIN%</th><th>СТАТУС</th></tr></thead><tbody>';
+  let h = '<div class="rating-title"><span class="star">★</span> Винрейт <span style="font-size:.72rem;color:var(--text-dim);font-weight:400;">· за 8 игр игрока</span></div><div class="table-wrap"><table><thead><tr><th>#</th><th>ИГРОК</th><th>ИГР</th><th>W</th><th>L</th><th>WIN%</th><th>СТАТУС</th></tr></thead><tbody>';
   let num = 0;
   data.forEach((p,i) => {
     if (p.played >= 3) num++;
@@ -429,7 +429,7 @@ function renderMedals(data) {
     return;
   }
 
-  let h = '<div class="rating-title"><span class="star">★</span> Медали MVP / EVP</div><div class="table-wrap"><table><thead><tr><th>#</th><th>ИГРОК</th><th>🏆 MVP</th><th>EVP</th><th>ВСЕГО</th><th>🐰 УШИ</th><th>ИМПАКТ (ср)</th><th>K/D (ср)</th><th>ADR (ср)</th></tr></thead><tbody>';
+  let h = '<div class="rating-title"><span class="star">★</span> Медали MVP / EVP <span style="font-size:.72rem;color:var(--text-dim);font-weight:400;">· за всё время</span></div><div class="table-wrap"><table><thead><tr><th>#</th><th>ИГРОК</th><th>🏆 MVP</th><th>EVP</th><th>ВСЕГО</th><th>🐰 УШИ</th><th>ИМПАКТ (ср)</th><th>K/D (ср)</th><th>ADR (ср)</th></tr></thead><tbody>';
   data.forEach((p, i) => {
     h += `<tr><td class="num">${i + 1}</td><td class="name">${escapeHTML(p.player_name)}</td><td class="gold">${p.mvp_count}</td><td class="kd">${p.evp_count}</td><td class="impact">${p.medals_total}</td><td class="red">${p.worst_count || 0}</td><td class="impact">${Number(p.avg_impact).toFixed(2)}</td><td class="kd">${Number(p.avg_kd).toFixed(2)}</td><td class="adr">${Number(p.avg_adr).toFixed(1)}</td></tr>`;
   });
@@ -438,7 +438,7 @@ function renderMedals(data) {
 }
 
 function renderClutches(data) {
-  let h = '<div class="rating-title"><span class="star">★</span> Клатчи (в среднем за матч)</div><div class="table-wrap"><table><thead><tr><th>#</th><th>ИГРОК</th><th>ИГР</th><th>1v5</th><th>1v4</th><th>1v3</th><th>1v2</th><th>1v1</th><th>Σ OЧКИ</th></tr></thead><tbody>';
+  let h = '<div class="rating-title"><span class="star">★</span> Клатчи (среднее за матч) <span style="font-size:.72rem;color:var(--text-dim);font-weight:400;">· за 8 игр игрока</span></div><div class="table-wrap"><table><thead><tr><th>#</th><th>ИГРОК</th><th>ИГР</th><th>1v5</th><th>1v4</th><th>1v3</th><th>1v2</th><th>1v1</th><th>Σ OЧКИ</th></tr></thead><tbody>';
   data.forEach((p,i) => {
     h += `<tr><td class="num">${i+1}</td><td class="name">${escapeHTML(p.player_name)}</td><td class="games">${p.games}</td><td>${p.c5||0}</td><td>${p.c4||0}</td><td>${p.c3||0}</td><td>${p.c2||0}</td><td>${p.c1||0}</td><td class="impact">${p.score}</td></tr>`;
   });
@@ -501,7 +501,7 @@ function renderPlayer(el, d) {
   h += '<div class="p-head">';
   h += '<div class="avatar">' + (d.photo ? '<img src="' + d.photo + '" alt="" onerror="this.parentNode.innerHTML=&#39;<span>' + escapeHTML(initials) + '</span>&#39;">' : '<span>' + escapeHTML(initials) + '</span>') + '</div>';
   h += '<div><h2>' + escapeHTML(d.name) + '</h2>';
-  h += '<div class="p-sub">' + (t.days || 0) + ' игровых дней · ' + (t.matches || 0) + ' матчей</div></div>';
+  h += '<div class="p-sub">За последние 8 игр: ' + (t.days || 0) + ' игровых дней · ' + (t.matches || 0) + ' матчей</div></div>';
   h += '</div>';
 
   if (m.mvp || m.evp || m.worst) {
