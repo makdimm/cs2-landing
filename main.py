@@ -97,13 +97,16 @@ def estimate_day_maps(conn, match_date):
     total_maps = 0
     for match in match_ids:
         sa, sb = match["score_a"], match["score_b"]
-        if sa is not None and sb is not None and sa <= 3 and sb <= 3 and sa + sb > 0:
-            total_maps += sa + sb
-            continue
         total_kills = conn.execute(
             "SELECT COALESCE(SUM(kills),0) FROM player_stats WHERE match_id=?",
             (match["id"],)
         ).fetchone()[0]
+        series_maps = sa + sb if (sa is not None and sb is not None and sa <= 3 and sb <= 3 and sa + sb > 0) else 0
+        # Защита (18.09.2026): счёт серии сверяем с киллами — одна карта даёт 130+ убийств.
+        # Если счёт серии обещает больше карт, чем подтверждают убийства, считаем по киллам.
+        if series_maps and (total_kills <= 0 or total_kills / series_maps >= 130):
+            total_maps += series_maps
+            continue
         total_maps += max(1, round(total_kills / 150.0))
     return total_maps
 
@@ -316,16 +319,12 @@ def get_winrate_stats(limit=20, min_days=1, last_n=8):
         day_winners = {}
         for d in dates:
             day_matches = [r for r in matches if r["match_date"] == d]
-            a_wins = sum(1 for r in day_matches if r["winner"] == "A")
-            b_wins = sum(1 for r in day_matches if r["winner"] == "B")
-            if a_wins > b_wins:
-                day_winners[d] = "Team A"
-            elif b_wins > a_wins:
-                day_winners[d] = "Team B"
-            else:
+            winner = compute_day_winner(day_matches)
+            if winner is None:
                 a_rounds = sum(r["score_a"] or 0 for r in day_matches)
                 b_rounds = sum(r["score_b"] or 0 for r in day_matches)
-                day_winners[d] = "Team A" if a_rounds >= b_rounds else "Team B"
+                winner = "Team A" if a_rounds >= b_rounds else "Team B"
+            day_winners[d] = winner
 
         rows = conn.execute(f"""
             SELECT DISTINCT ps.team, m.match_date
@@ -356,6 +355,55 @@ def get_winrate_stats(limit=20, min_days=1, last_n=8):
     conn.close()
     out.sort(key=lambda x: (0 if x["played"] >= 3 else 1, -x["wr"], -x["played"]))
     return out[:limit]
+
+
+def _match_map_wins(m):
+    """Сколько КАРТ взяла каждая команда в одной ссылке (матче).
+
+    Ссылка-серия (bo3/bo5): score — это уже выигранные карты (0:3, 2:1).
+    Ссылка на одну карту: score — это раунды (13:8) → карту берёт победитель.
+    """
+    sa = float(m["score_a"] or 0)
+    sb = float(m["score_b"] or 0)
+    if max(sa, sb) >= 10:  # похоже на раунды одной карты
+        return (1.0, 0.0) if sa > sb else (0.0, 1.0)
+    return sa, sb
+
+
+def compute_day_winner(matches_) -> str | None:
+    """Победитель игрового дня — серия до 3 побед (best-of-5).
+
+    Сколько бы ссылок ни прислали за раз — это ОДИН игровой день, максимум 5 карт.
+    Побеждает команда, которая ПЕРВОЙ забрала 3 карты. Карты, доигранные уже после
+    этого («просто добегать»), на победителя дня НЕ влияют (в статистику игроков идут).
+
+    Пример: ссылка 1 — 0:3 (команда B забрала 3 карты → день выигран), ссылки 2 и 3 —
+    по одной карте команде A. Итог дня — Team B.
+    """
+    if not matches_:
+        return None
+    maps_a = maps_b = 0.0
+    rounds_a = rounds_b = 0.0
+    for m in matches_:
+        ma, mb = _match_map_wins(m)
+        maps_a += ma
+        maps_b += mb
+        rounds_a += float(m["score_a"] or 0)
+        rounds_b += float(m["score_b"] or 0)
+        # кто первым взял 3 карты — тот и выиграл день
+        if maps_a >= 3 and maps_a > maps_b:
+            return "Team A"
+        if maps_b >= 3 and maps_b > maps_a:
+            return "Team B"
+    if maps_a > maps_b:
+        return "Team A"
+    if maps_b > maps_a:
+        return "Team B"
+    if rounds_a > rounds_b:
+        return "Team A"
+    if rounds_b > rounds_a:
+        return "Team B"
+    return None
 
 
 def get_day_stats():
@@ -393,23 +441,13 @@ def get_mvp_evp():
     for d in days:
         day = d[0]
         matches_ = conn.execute(
-            "SELECT winner, score_a, score_b FROM matches WHERE match_date=?", (day,)
+            "SELECT winner, score_a, score_b FROM matches WHERE match_date=? ORDER BY id", (day,)
         ).fetchall()
         if not matches_:
             continue
 
-        wins_a = sum(1 for m in matches_ if m["winner"] == "A")
-        wins_b = sum(1 for m in matches_ if m["winner"] == "B")
-        score_diff = sum((m["score_a"] or 0) - (m["score_b"] or 0) for m in matches_)
-        if wins_a > wins_b:
-            winner_team = "Team A"
-        elif wins_b > wins_a:
-            winner_team = "Team B"
-        elif score_diff > 0:
-            winner_team = "Team A"
-        elif score_diff < 0:
-            winner_team = "Team B"
-        else:
+        winner_team = compute_day_winner(matches_)
+        if winner_team is None:
             ka = conn.execute("""
                 SELECT COALESCE(SUM(ps.kills),0) FROM player_stats ps
                 JOIN matches m ON ps.match_id=m.id WHERE m.match_date=? AND ps.team='Team A'
