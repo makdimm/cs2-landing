@@ -516,6 +516,78 @@ def get_mvp_evp():
 
 
 def get_medals_stats():
+    """Медали за всю историю: читаем накопительную таблицу medal_history.
+    Если таблицы нет или она пуста — падаем в прежний расчёт по дням."""
+    conn = get_db()
+    try:
+        has_table = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='medal_history'"
+        ).fetchone()
+        rows = []
+        if has_table:
+            rows = conn.execute(
+                "SELECT match_date, player_name, medal, impact, kd, adr FROM medal_history"
+            ).fetchall()
+    except Exception:
+        rows = []
+    finally:
+        conn.close()
+
+    if not rows:
+        return _get_medals_stats_computed()
+
+    stats = {}
+    for r in rows:
+        name = r["player_name"]
+        st = stats.setdefault(name, {
+            "player_name": name, "mvp_count": 0, "evp_count": 0, "worst_count": 0,
+            "medals_total": 0, "_impact_sum": 0.0, "_kd_sum": 0.0, "_adr_sum": 0.0,
+            "_medal_days": 0,
+        })
+        medal = (r["medal"] or "").upper()
+        if medal == "MVP":
+            st["mvp_count"] += 1
+        elif medal == "EVP":
+            st["evp_count"] += 1
+        elif medal == "WORST":
+            st["worst_count"] += 1
+        if medal in ("MVP", "EVP"):
+            st["medals_total"] += 1
+            st["_impact_sum"] += float(r["impact"] or 0)
+            st["_kd_sum"] += float(r["kd"] or 0)
+            st["_adr_sum"] += float(r["adr"] or 0)
+            st["_medal_days"] += 1
+
+    conn = get_db()
+    games_rows = conn.execute("""
+        SELECT ps.player_name, COUNT(DISTINCT m.match_date) AS games
+        FROM player_stats ps
+        JOIN matches m ON ps.match_id = m.id
+        GROUP BY ps.player_name
+    """).fetchall()
+    games_map = {row["player_name"]: row["games"] for row in games_rows}
+    conn.close()
+
+    out = []
+    for name, st in stats.items():
+        md = st["_medal_days"] or 1
+        out.append({
+            "player_name": name,
+            "mvp_count": st["mvp_count"],
+            "evp_count": st["evp_count"],
+            "worst_count": st["worst_count"],
+            "medals_total": st["medals_total"],
+            "avg_impact": round(st["_impact_sum"] / md, 2),
+            "avg_kd": round(st["_kd_sum"] / md, 2),
+            "avg_adr": round(st["_adr_sum"] / md, 1),
+            "games": games_map.get(name, 0),
+        })
+
+    out.sort(key=lambda x: (-x["medals_total"], -x["mvp_count"], -x["avg_impact"], x["player_name"]))
+    return out
+
+
+def _get_medals_stats_computed():
     mvp_evp_days = get_mvp_evp()
     if not mvp_evp_days:
         return []
@@ -541,6 +613,7 @@ def get_medals_stats():
             stats["medals_total"] += 1
             stats["_kd_sum"] += float(mvp.get("kd") or 0)
             stats["_adr_sum"] += float(mvp.get("adr") or 0)
+            stats["_impact_sum"] += float(mvp.get("impact") or 0)
             stats["_medal_days"] += 1
 
         for evp in day.get("evp", []):
@@ -562,6 +635,7 @@ def get_medals_stats():
             stats["medals_total"] += 1
             stats["_kd_sum"] += float(evp.get("kd") or 0)
             stats["_adr_sum"] += float(evp.get("adr") or 0)
+            stats["_impact_sum"] += float(evp.get("impact") or 0)
             stats["_medal_days"] += 1
 
         worst = day.get("worst")
@@ -596,7 +670,9 @@ def get_medals_stats():
     out = []
     for name, stats in medal_stats.items():
         medal_days = stats["_medal_days"] or 1
-        avg_impact = get_player_last8_impact_summary(conn, name)["impact"]
+        # все медали считаем за всё время: impact — среднее по медальным дням,
+        # а не по окну последних 8 игровых дней
+        avg_impact = round(stats["_impact_sum"] / medal_days, 2)
         out.append({
             "player_name": name,
             "mvp_count": stats["mvp_count"],

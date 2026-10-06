@@ -1,3 +1,10 @@
 .env
 photos/
 photos/
+__pycache__/
+*.pyc
+*.bak
+*.bak-*
+*.bak.*
+.env.bak*
+.env.restored
