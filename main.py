@@ -406,11 +406,18 @@ def compute_day_winner(matches_) -> str | None:
     return None
 
 
-def get_day_stats():
+def get_day_stats(limit=8):
+    """Статы по игровым дням. limit=8 (последние 8 дней) для отображения; limit=None — вся история."""
     conn = get_db()
-    days = conn.execute(
-        "SELECT DISTINCT match_date FROM matches ORDER BY match_date DESC"
-    ).fetchall()
+    if limit:
+        days = conn.execute(
+            "SELECT DISTINCT match_date FROM matches ORDER BY match_date DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+    else:
+        days = conn.execute(
+            "SELECT DISTINCT match_date FROM matches ORDER BY match_date DESC"
+        ).fetchall()
     result = []
     for d in days:
         day = d[0]
@@ -434,9 +441,16 @@ def get_day_stats():
     return result
 
 
-def get_mvp_evp():
+def get_mvp_evp(limit=8):
+    """MVP/EVP по игровым дням. limit=8 (последние 8 дней) для отображения; limit=None — вся история."""
     conn = get_db()
-    days = conn.execute("SELECT DISTINCT match_date FROM matches ORDER BY match_date DESC").fetchall()
+    if limit:
+        days = conn.execute(
+            "SELECT DISTINCT match_date FROM matches ORDER BY match_date DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+    else:
+        days = conn.execute("SELECT DISTINCT match_date FROM matches ORDER BY match_date DESC").fetchall()
     result = []
     for d in days:
         day = d[0]
@@ -588,7 +602,7 @@ def get_medals_stats():
 
 
 def _get_medals_stats_computed():
-    mvp_evp_days = get_mvp_evp()
+    mvp_evp_days = get_mvp_evp(limit=None)
     if not mvp_evp_days:
         return []
 
@@ -836,12 +850,14 @@ def api_winrate():
     return get_winrate_stats()
 
 @app.get("/api/days")
-def api_days():
-    return get_day_stats()
+def api_days(all: bool = False):
+    """По умолчанию — последние 8 игровых дней (как на сайте). all=1 — вся история."""
+    return get_day_stats(limit=None if all else 8)
 
 @app.get("/api/mvp-evp")
-def api_mvp_evp():
-    return get_mvp_evp()
+def api_mvp_evp(all: bool = False):
+    """По умолчанию — последние 8 игровых дней (как на сайте). all=1 — вся история."""
+    return get_mvp_evp(limit=None if all else 8)
 
 @app.get("/api/medals")
 def api_medals():
